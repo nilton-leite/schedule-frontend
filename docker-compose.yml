@@ -1,6 +1,22 @@
 version: "3.8"
 
 services:
+  letsencrypt:
+    image: linuxserver/letsencrypt
+    container_name: letsencrypt
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=Europe/London
+      - URL=agenda.orlwambier.com.br
+      - SUBDOMAINS=wildcard,
+      - VALIDATION=dns
+      - DNSPLUGIN=dnsimple
+      - EMAIL=nilton.a.junior@hotmail.com
+      - DHLEVEL=4096
+    volumes:
+      - </path/to/appdata/config>:/config
+    restart: unless-stopped
   frontend:
     build:
       context: ./
