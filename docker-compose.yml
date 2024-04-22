@@ -15,7 +15,7 @@ services:
       - EMAIL=nilton.a.junior@hotmail.com
       - DHLEVEL=4096
     volumes:
-      - ./config
+      - config:/config
     restart: unless-stopped
   frontend:
     build:
@@ -23,4 +23,6 @@ services:
       dockerfile: Dockerfile
     ports:
         - 3000:3000
+volumes: 
+  config:
 
