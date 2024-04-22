@@ -15,7 +15,7 @@ services:
       - EMAIL=nilton.a.junior@hotmail.com
       - DHLEVEL=4096
     volumes:
-      - </path/to/appdata/config>:/config
+      - ./config
     restart: unless-stopped
   frontend:
     build:
