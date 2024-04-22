@@ -44,7 +44,7 @@ export const CONFIG = {
 };
 
 export const ENDPOINT = {
-  api: 'http://prhgeb.hospedagemelastica.com.br/',
+  api: 'http://85.31.62.71:3333/',
   config: {
     headers: {
       Authorization: `Bearer ${localStorage.getItem('access_token')}`
