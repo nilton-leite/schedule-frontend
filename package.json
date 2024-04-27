@@ -2,7 +2,6 @@
   "name": "datta-able-react-hook-reactstrap-js",
   "version": "17.1.0",
   "private": true,
-  "proxy": "http://85.31.62.71:3333/",
   "homepage": "",
   "dependencies": {
     "@fullcalendar/bootstrap": "^6.1.8",
