@@ -2,7 +2,7 @@
   "name": "datta-able-react-hook-reactstrap-js",
   "version": "17.1.0",
   "private": true,
-  "proxy": "http://prhgeb.hospedagemelastica.com.br",
+  "proxy": "http://85.31.62.71:3333/",
   "homepage": "",
   "dependencies": {
     "@fullcalendar/bootstrap": "^6.1.8",
@@ -21,6 +21,7 @@
     "deni-react-treeview": "^1.1.11",
     "formik": "^2.2.9",
     "history": "^5.3.0",
+    "http-proxy-middleware": "^3.0.0",
     "install": "^0.13.0",
     "jquery": "^3.6.0",
     "jsonwebtoken": "^8.5.1",
