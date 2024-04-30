@@ -44,7 +44,7 @@ export const CONFIG = {
 };
 
 export const ENDPOINT = {
-  api: 'https://85.31.62.71:3333/api/',
+  api: 'http://85.31.62.71:3333/api/',
   config: {
     headers: {
       Authorization: `Bearer ${localStorage.getItem('access_token')}`
