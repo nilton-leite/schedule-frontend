@@ -29,7 +29,7 @@ function FloatingButton() {
 
   useEffect(() => {
     checkConnection();
-    const intervalId = setInterval(checkConnection, 600000);
+    const intervalId = setInterval(checkConnection, 3,6e+6);
     return () => clearInterval(intervalId);
   }, []);
 
