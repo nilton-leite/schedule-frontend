@@ -74,15 +74,14 @@ const FullEventCalendar = () => {
   const [isDisabled, setIsDisabled] = useState(false);
 
   useEffect(() => {
-    getDoctorSchedules(`schedules/only`);
     getStatus();
-    getFormStatus();
     getPatients();
     getDoctors();
-    getSchedules();
-    getDoctorsFilter();
     getScheduleTypes();
     getHealthInsurances();
+    getDoctorsFilter();
+    getDoctorSchedules(`schedules/only`);
+    getSchedules();
   }, []);
 
   const sweetAlertHandler = (alert) => {
@@ -235,9 +234,7 @@ const FullEventCalendar = () => {
 
           const combinedStart = `${yearA}-${monthA}-${dayA}T${temporaryabs.temporary.initTime}`;
           const combinedEnd = `${yearA}-${monthA}-${dayA}T${temporaryabs.temporary.endTime}`;
-          console.log('combinedStart', combinedStart)
-          console.log('combinedEnd', combinedEnd)
-          // console.log('abs');
+          
           newData.push({
             id: temporaryabs.temporary.scheduleId,
             title: `AUSENTE: (${doctor.name}) - ${temporaryabs.temporary.reasonTemporaryAbsence.description}`,
@@ -443,7 +440,6 @@ const FullEventCalendar = () => {
     await axios
       .get(`${ENDPOINT.api}schedules`, ENDPOINT.config)
       .then(async (response) => {
-        getFormStatus();
         const newdata = await transformData(response.data.response);
         const orderednd = newdata.sort((a, b) => b.scheduleId - a.scheduleId);
 
@@ -505,21 +501,21 @@ const FullEventCalendar = () => {
       });
   };
 
-  const getFormStatus = async () => {
-    await axios
-      .get(`${ENDPOINT.api}status`, ENDPOINT.config)
-      .then(async (response) => {
-        await setStatusFormSelection(
-          response.data.response.map((item) => ({
-            value: item.statusId,
-            label: item.description
-          }))
-        );
-      })
-      .catch((err) => {
-        console.error('Não foi possível puxar os Status.' + err);
-      });
-  };
+  // const getFormStatus = async () => {
+  //   await axios
+  //     .get(`${ENDPOINT.api}status`, ENDPOINT.config)
+  //     .then(async (response) => {
+  //       await setStatusFormSelection(
+  //         response.data.response.map((item) => ({
+  //           value: item.statusId,
+  //           label: item.description
+  //         }))
+  //       );
+  //     })
+  //     .catch((err) => {
+  //       console.error('Não foi possível puxar os Status.' + err);
+  //     });
+  // };
 
   const getDoctorsFilter = () => {
     setDoctorsFilter(doctors);
@@ -536,7 +532,8 @@ const FullEventCalendar = () => {
     await Promise.all(
       data.map(async (doctor) => {
         const { doctorId, name, schedules } = doctor;
-
+        console.log('statusFormSelection', statusFormSelection);
+        console.log('status', statusSelection)
         await Promise.all(
           schedules.map(async (schedule) => {
             const {
@@ -544,13 +541,11 @@ const FullEventCalendar = () => {
               data,
               time,
               statusId,
+              descriptionStatus,
               hasFirstQuery,
               type,
               patients: { patientId, name: patientName }
             } = schedule;
-
-            const statusResponse = await axios.get(`${ENDPOINT.api}status/${statusId}`, ENDPOINT.config);
-            const statusName = statusResponse.data.response.description;
 
             transformedData.push({
               scheduleId,
@@ -561,7 +556,7 @@ const FullEventCalendar = () => {
               data,
               time,
               statusId,
-              statusName,
+              statusName: descriptionStatus,
               type,
               hasFirstQuery: hasFirstQuery
             });
