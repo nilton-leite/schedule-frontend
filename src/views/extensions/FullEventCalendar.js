@@ -42,12 +42,13 @@ const FullEventCalendar = () => {
     data: '',
     time: '',
     hasHealthInsurance: false,
-    hasFirstQuery: false,
+    hasFirstQuery: true,
     statusId: 2,
     patientId: '',
     doctorId: '',
     scheduleTypeId: 1,
-    obs: ''
+    obs: '',
+    healthInsuranceId: ''
   };
   const [isOpen, setIsOpen] = useState(true);
   const [updatingData, setUpdatingData] = useState(false);
@@ -70,6 +71,7 @@ const FullEventCalendar = () => {
   const [patient, setPatient] = useState(modelPatient);
   const [exist, setExist] = useState(false);
   const [healthInsurances, setHealthInsurances] = useState([]);
+  const [isDisabled, setIsDisabled] = useState(false);
 
   useEffect(() => {
     getDoctorSchedules(`schedules/only`);
@@ -317,14 +319,16 @@ const FullEventCalendar = () => {
   };
 
   const submitUpdate = async (updateId, updatedData) => {
-    const updateForm = { statusId: updatedData.statusId };
+    const updateForm = { statusId: updatedData.statusId, obs: updatedData.obs };
     await axios
       .patch(`${ENDPOINT.api}schedules/${updateId}`, updateForm, ENDPOINT.config)
       .then((response) => {
         if (response.data.statusCode === 200) {
           setIsModalOpen(false);
           setModalData([]);
-          window.location.reload();
+          getSchedules();
+          getDoctorSchedules(`schedules/only`);
+          
         } else {
           if (response.data.statusCode === 400) {
             sweetAlertHandler({ title: 'Poxa...', text: response.data.response, icon: 'error', showCloseButton: true });
@@ -337,33 +341,36 @@ const FullEventCalendar = () => {
         sweetAlertHandler({ title: 'Poxa...', text: 'Não foi possivel alterar.', icon: 'error', showCloseButton: true });
         console.error('Não foi possível alterar a Consulta.' + err);
       });
-    if (updatedData.obs !== '') {
-      await axios
-        .post(`${ENDPOINT.api}queries`, { scheduleId: updateId, obs: updatedData.obs }, ENDPOINT.config)
-        .then((response) => {
-          if (response.data.statusCode === 200) {
-            sweetAlertHandler({
-              title: 'Tudo certo!',
-              text: 'Consulta alterada com sucesso.',
-              icon: 'success',
-              showCloseButton: true
-            });
-            setIsModalOpen(false);
-            setModalData([]);
-            window.location.reload();
-          } else {
-            if (response.data.statusCode === 400) {
-              sweetAlertHandler({ title: 'Poxa...', text: response.data.response, icon: 'error', showCloseButton: true });
-            } else {
-              sweetAlertHandler({ title: 'Poxa...', text: 'Não foi possivel alterar.', icon: 'error', showCloseButton: true });
-            }
-          }
-        })
-        .catch((err) => {
-          sweetAlertHandler({ title: 'Poxa...', text: 'Não foi possivel alterar.', icon: 'error', showCloseButton: true });
-          console.error('Não foi possível alterar a Consulta.' + err);
-        });
-    }
+    // if (updatedData.obs !== '') {
+    //   console.log('HELLO')
+    //   await axios
+    //     .post(`${ENDPOINT.api}queries`, { scheduleId: updateId, obs: updatedData.obs }, ENDPOINT.config)
+    //     .then((response) => {
+    //       if (response.data.statusCode === 200) {
+    //         sweetAlertHandler({
+    //           title: 'Tudo certo!',
+    //           text: 'Consulta alterada com sucesso.',
+    //           icon: 'success',
+    //           showCloseButton: true
+
+    //         })
+    //         setIsModalOpen(false);
+    //         setModalData([]);
+    //         getSchedules();
+    //         getDoctorSchedules(`schedules/only`);
+    //       } else {
+    //         if (response.data.statusCode === 400) {
+    //           sweetAlertHandler({ title: 'Poxa...', text: response.data.response, icon: 'error', showCloseButton: true });
+    //         } else {
+    //           sweetAlertHandler({ title: 'Poxa...', text: 'Não foi possivel alterar.', icon: 'error', showCloseButton: true });
+    //         }
+    //       }
+    //     })
+    //     .catch((err) => {
+    //       sweetAlertHandler({ title: 'Poxa...', text: 'Não foi possivel alterar.', icon: 'error', showCloseButton: true });
+    //       console.error('Não foi possível alterar a Consulta.' + err);
+    //     });
+    // }
   };
 
   const newSchedule = (args) => {
@@ -405,21 +412,6 @@ const FullEventCalendar = () => {
     center: 'title',
     right: 'timeGridDay,timeGridWeek,dayGridMonth'
   };
-
-  /* a
-a
-a
-a
-a
-a
-a
-a
-a
-a
-a
-a
-a
-a */
 
   const CPFMask = (value) => {
     const cleanedValue = value.replace(/\D/g, '');
@@ -637,6 +629,7 @@ a */
   };
 
   const handleSubmit = async (e) => {
+    setIsDisabled(true);
     e.preventDefault();
     await axios
       .post(
@@ -644,41 +637,43 @@ a */
         {
           data: scheduleDate,
           time: newFormSchedule.time,
-          hasHealthInsurance: newFormSchedule.healthInsuranceId !== '' ? true : false,
+          hasHealthInsurance: newFormSchedule.healthInsuranceId !== '' &&  newFormSchedule.healthInsuranceId !== null ? true : false,
           hasFirstQuery: newFormSchedule.hasFirstQuery,
           statusId: 2,
           obs: newFormSchedule.obs,
           patientId: parseInt(newFormSchedule.patientId, 10),
           doctorId: parseInt(newFormSchedule.doctorId !== '' ? newFormSchedule.doctorId : doctorSelectedOption.value, 10),
           scheduleTypeId: newFormSchedule.scheduleTypeId,
-          healthInsuranceId: newFormSchedule.healthInsuranceId
+          healthInsuranceId: newFormSchedule.healthInsuranceId !== '' &&  newFormSchedule.healthInsuranceId !== null ? newFormSchedule.healthInsuranceId : null
         },
         ENDPOINT.config
       )
       .then((response) => {
         if (response.data.statusCode === 200) {
-          setIsScheduleOpen(false);
+          handleClear()
           sweetAlertHandler({
             title: 'Tudo certo!',
             text: 'Consulta cadastrada com sucesso.',
             icon: 'success',
-            showCloseButton: true
+            showCloseButton: true,
+
           });
-          window.location.reload();
-          setNewFormSchedule(model);
-          getSchedules();
-        } else {
           setIsScheduleOpen(false);
+          getSchedules();
+          getDoctorSchedules(`schedules/only`);
+        } else {
           if (response.data.statusCode === 400) {
             sweetAlertHandler({ title: 'Poxa...', text: response.data.response, icon: 'error', showCloseButton: true });
           } else {
             sweetAlertHandler({ title: 'Poxa...', text: 'Não foi possivel alterar.', icon: 'error', showCloseButton: true });
           }
         }
+        setIsDisabled(false);
       })
       .catch((err) => {
         sweetAlertHandler({ title: 'Poxa...', text: 'Não foi possivel cadastrar.', icon: 'error', showCloseButton: true });
         console.error('Não foi possível cadastrar o Consulta.' + err);
+        setIsDisabled(false);
       });
   };
 
@@ -750,11 +745,11 @@ a */
             icon: 'success',
             showCloseButton: true
           });
-          setNewFormSchedule(model);
+          handleClear()
           setUpdatingData(false);
           setIsOpen(false);
           getSchedules();
-          window.location.reload();
+          getDoctorSchedules(`schedules/only`);
         } else {
           if (response.data.statusCode === 400) {
             sweetAlertHandler({ title: 'Poxa...', text: response.data.response, icon: 'error', showCloseButton: true });
@@ -846,7 +841,13 @@ a */
 
   const handleClear = () => {
     setNewFormSchedule(model);
-    setSchedsToday([]);
+    setTypeSelectedOption('');
+    setPatientSelectedOption('');
+    setDoctorSelectedOption('');
+    setScheduleDate('');
+    setHealthInsuranceSelectedOption('');
+    
+    // setSchedsToday([]);
   };
 
   return (
@@ -1023,9 +1024,10 @@ a */
                 </Button>
                 <Button
                   variant="primary"
+                  disabled={isDisabled}
                   onClick={() => submitUpdate(modalData.scheduleId, { obs: modalData.obs, statusId: modalData.statusId })}
                 >
-                  Salvar Alterações
+                  {isDisabled ? 'Salvando...' : 'Salvar Alterações'} 
                 </Button>
               </Modal.Footer>
             </Modal>
@@ -1106,7 +1108,7 @@ a */
                               setIsRegisterPatient(!isRegisterPatient);
                             }}
                           >
-                            <i className="feather icon-plus-circle" />
+                            {!isRegisterPatient ? <i className="feather icon-plus-circle" /> : <i className="feather icon-minus-circle" />}
                           </Button>
                         </Col>
                         <Col lg={2}>
@@ -1214,7 +1216,7 @@ a */
                           </Col>
                           <Col lg={2}>
                             <Form.Group controlId="document">
-                              <Form.Label>CPF{updatingData ? '' : <span className="mandatory">*</span>}</Form.Label>
+                              <Form.Label>CPF</Form.Label>
 
                               <InputMask
                                 className="form-control"
@@ -1302,8 +1304,8 @@ a */
                                   Salvar Alterações
                                 </Button>
                               ) : (
-                                <Button variant="primary" type="submit">
-                                  Cadastrar
+                                <Button variant="primary" type="submit" disabled={isDisabled}>
+                                   {!isDisabled ? 'Cadastrar'  : 'Salvando...' } 
                                 </Button>
                               )}
                               <Button variant="secundary" onClick={handleClear}>
@@ -1320,7 +1322,7 @@ a */
                 </Row>
               </Modal.Body>
               <Modal.Footer>
-                <Button variant="secondary" onClick={() => setIsScheduleOpen(false)}>
+                <Button variant="secondary" onClick={() => { setIsScheduleOpen(false); handleClear()}}>
                   Fechar
                 </Button>
               </Modal.Footer>
