@@ -210,7 +210,7 @@ const FullEventCalendar = () => {
           backgroundColor: setColour(schedule.statusId),
           eventTextColor: '#fff',
           extendedProps: {
-            type: 'SCHEDULE',
+            typeModal: 'SCHEDULE',
             data: schedule.data,
             hasFirstQuery: schedule.hasFirstQuery,
             obs: schedule.obs == null ? '' : schedule.obs,
@@ -245,7 +245,7 @@ const FullEventCalendar = () => {
             backgroundColor: '#9C9C9C',
             eventTextColor: '#CD9B9B',
             extendedProps: {
-              type: 'TEMPORARY',
+              typeModal: 'TEMPORARY',
               key: temporaryabs.temporary.scheduleId,
               initDate: temporaryabs.temporary.initDate,
               initTime: temporaryabs.temporary.initTime,
@@ -938,16 +938,16 @@ const FullEventCalendar = () => {
 
             <Modal centered size="xl" show={isModalOpen} onHide={() => setIsModalOpen(false)}>
               <Modal.Header closeButton>
-              {modalData.type === 'SCHEDULE' && ( 
+              {modalData.typeModal === 'SCHEDULE' && ( 
                 <Modal.Title as="h5">Ficha da Consulta ( {modalData.scheduleId} )</Modal.Title>
               )}
               
-              {modalData.type === 'TEMPORARY' && ( 
+              {modalData.typeModal === 'TEMPORARY' && ( 
                 <Modal.Title as="h5">{modalData.reason}</Modal.Title>
               )}
               </Modal.Header>
               <Modal.Body>
-              {modalData.type === 'SCHEDULE' && ( 
+              {modalData.typeModal === 'SCHEDULE' && ( 
                 <Row className="m-t-15">
                   <Col lg={4} className="m-t-15">
                     <h6>Dados da Consulta</h6>
@@ -1026,7 +1026,7 @@ const FullEventCalendar = () => {
                   </Col>
                 </Row>
               )}
-              {modalData.type === 'TEMPORARY' && ( 
+              {modalData.typeModal === 'TEMPORARY' && ( 
                 <Row className="m-t-15">
                   <Col lg={4} className="m-t-15">
                     <h6>Dados da Ausência</h6>
@@ -1098,7 +1098,7 @@ const FullEventCalendar = () => {
                 <Button variant="secondary" onClick={() => setIsModalOpen(false)}>
                   Fechar
                 </Button>
-                {modalData.type === 'SCHEDULE' && (
+                {modalData.typeModal === 'SCHEDULE' && (
                   <Button
                     variant="primary"
                     disabled={isDisabled}
