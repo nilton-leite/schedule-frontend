@@ -184,6 +184,7 @@ function Schedule() {
   };
 
   const transformData = async (data) => {
+    console.log('datraaa', data)
     const transformedData = [];
 
     await Promise.all(
@@ -216,6 +217,7 @@ function Schedule() {
               data,
               time,
               statusId,
+              healthInsuranceId: schedule.healthInsurance && schedule.healthInsurance.healthInsuranceId ? schedule.healthInsurance.healthInsuranceId : null,
               statusName: descriptionStatus,
               lastChangedBy,
               createdBy,
@@ -328,6 +330,7 @@ function Schedule() {
   };
 
   const submitEdit = (editItem) => {
+    console.log('editItem', editItem);
     setIsOpen(true);
     setUpdatingData(true);
 
@@ -346,7 +349,7 @@ function Schedule() {
     const [day, month, year] = date.split('/');
     const dateInstance = new Date(year, month - 1, day);
     setScheduleDate(dateInstance);
-
+    console.log('healthInsuranceSelectedOption', healthInsuranceSelectedOption);
     setNewSchedule({
       data: dateInstance,
       time: editItem.time,
@@ -363,8 +366,6 @@ function Schedule() {
 
   const handleUpdate = async (e) => {
     const filteredData = scheds.filter((item) => item.scheduleId === newSchedule.scheduleId);
-    console.log('filter', filteredData)
-    console.log('newSchedule', newSchedule)
     const updatedData = {};
 
     for (const key in newSchedule) {
@@ -382,7 +383,6 @@ function Schedule() {
   };
 
   const submitUpdate = async (updateId, updatedData) => {
-    console.log('updatedData', updatedData)
     await axios
       .patch(`${ENDPOINT.api}schedules/${updateId}`, updatedData, ENDPOINT.config)
       .then((response) => {
