@@ -363,26 +363,26 @@ function Schedule() {
 
   const handleUpdate = async (e) => {
     const filteredData = scheds.filter((item) => item.scheduleId === newSchedule.scheduleId);
-
+    console.log('filter', filteredData)
+    console.log('newSchedule', newSchedule)
     const updatedData = {};
 
     for (const key in newSchedule) {
-      if (newSchedule[key] !== filteredData[0][key]) {
         if (key === 'data') {
           if (newSchedule[key] instanceof Date) {
             updatedData[key] = `${newSchedule[key].getFullYear()}-${newSchedule[key].getMonth() + 1}-${newSchedule[key].getDate()}`;
           } else {
             formatDate(newSchedule[key]);
           }
-        } else {
+        } else if (key !== 'scheduleId') {
           updatedData[key] = newSchedule[key];
         }
-      }
     }
     if (Object.keys(updatedData).length > 0) submitUpdate(newSchedule.scheduleId, updatedData);
   };
 
   const submitUpdate = async (updateId, updatedData) => {
+    console.log('updatedData', updatedData)
     await axios
       .patch(`${ENDPOINT.api}schedules/${updateId}`, updatedData, ENDPOINT.config)
       .then((response) => {
