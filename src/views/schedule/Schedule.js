@@ -62,8 +62,8 @@ function Schedule() {
     getStatus();
     getPatients();
     getDoctors();
-    getSchedules();
     getScheduleTypes();
+    getSchedules();
     getHealthInsurances();
   }, []);
 
@@ -199,15 +199,13 @@ function Schedule() {
               statusId,
               hasFirstQuery,
               lastChangedBy,
+              descriptionStatus,
               createdBy,
               createdAt,
               updatedAt,
               type,
               patients: { patientId, name: patientName }
             } = schedule;
-
-            const statusResponse = await axios.get(`${ENDPOINT.api}status/${statusId}`, ENDPOINT.config);
-            const statusName = statusResponse.data.response.description;
 
             transformedData.push({
               scheduleId,
@@ -218,7 +216,7 @@ function Schedule() {
               data,
               time,
               statusId,
-              statusName,
+              statusName: descriptionStatus,
               lastChangedBy,
               createdBy,
               createdAt,

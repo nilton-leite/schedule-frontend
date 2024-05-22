@@ -210,6 +210,7 @@ const FullEventCalendar = () => {
           backgroundColor: setColour(schedule.statusId),
           eventTextColor: '#fff',
           extendedProps: {
+            type: 'SCHEDULE',
             data: schedule.data,
             hasFirstQuery: schedule.hasFirstQuery,
             obs: schedule.obs == null ? '' : schedule.obs,
@@ -230,7 +231,6 @@ const FullEventCalendar = () => {
         if (temporaryabs.temporary) {
 
           const [dayA, monthA, yearA] = temporaryabs.data.split('/')
-          // const [dayE, monthE, yearE] = temporaryabs.temporary.endDate.split('/');
 
           const combinedStart = `${yearA}-${monthA}-${dayA}T${temporaryabs.temporary.initTime}`;
           const combinedEnd = `${yearA}-${monthA}-${dayA}T${temporaryabs.temporary.endTime}`;
@@ -243,15 +243,25 @@ const FullEventCalendar = () => {
             end: combinedEnd,
             borderColor: '#9C9C9C',
             backgroundColor: '#9C9C9C',
-            eventTextColor: '#CD9B9B'
+            eventTextColor: '#CD9B9B',
+            extendedProps: {
+              type: 'TEMPORARY',
+              key: temporaryabs.temporary.scheduleId,
+              initDate: temporaryabs.temporary.initDate,
+              initTime: temporaryabs.temporary.initTime,
+              endDate: temporaryabs.temporary.endDate,
+              endTime: temporaryabs.temporary.endTime,
+              obs: temporaryabs.temporary.observation == null ? '' : temporaryabs.temporary.observation,
+              reason: temporaryabs.temporary.reasonTemporaryAbsence.description,
+              createdAt: temporaryabs.createdAt,
+              updatedAt: temporaryabs.updatedAt,
+              createdBy: temporaryabs.temporary.users.name,
+              updatedBy: temporaryabs.temporary.userChanged.name,
+            }
           });
         }
       });
     });
-
-    /* originalData.forEach((doctor) => {
-      
-    }); */
 
     return newData;
   };
@@ -928,9 +938,16 @@ const FullEventCalendar = () => {
 
             <Modal centered size="xl" show={isModalOpen} onHide={() => setIsModalOpen(false)}>
               <Modal.Header closeButton>
+              {modalData.type === 'SCHEDULE' && ( 
                 <Modal.Title as="h5">Ficha da Consulta ( {modalData.scheduleId} )</Modal.Title>
+              )}
+              
+              {modalData.type === 'TEMPORARY' && ( 
+                <Modal.Title as="h5">{modalData.reason}</Modal.Title>
+              )}
               </Modal.Header>
               <Modal.Body>
+              {modalData.type === 'SCHEDULE' && ( 
                 <Row className="m-t-15">
                   <Col lg={4} className="m-t-15">
                     <h6>Dados da Consulta</h6>
@@ -1008,18 +1025,88 @@ const FullEventCalendar = () => {
                     </Col>
                   </Col>
                 </Row>
+              )}
+              {modalData.type === 'TEMPORARY' && ( 
+                <Row className="m-t-15">
+                  <Col lg={4} className="m-t-15">
+                    <h6>Dados da Ausência</h6>
+                    <hr />
+                    <Col lg={6} className="p-2">
+                      <span className="modal-title">Data Inicio</span>
+                      <br />
+                      {modalData.initDate}
+                    </Col>
+                    <Col lg={6} className="p-2">
+                      <span className="modal-title">Hora Inicio</span>
+                      <br />
+                      {modalData.initTime}
+                    </Col>
+                    <Col lg={6} className="p-2">
+                      <span className="modal-title">Data Final</span>
+                      <br />
+                      {modalData.endDate}
+                    </Col>
+                    <Col lg={6} className="p-2">
+                      <span className="modal-title">Hora Final</span>
+                      <br />
+                      {modalData.endTime}
+                    </Col>
+                    <Col lg={6} className="p-2">
+                      <span className="modal-title">Criado em</span>
+                      <br />
+                      {modalData.createdAt}
+                    </Col>
+                    <Col lg={6} className="p-2">
+                      <span className="modal-title">Criado por</span>
+                      <br />
+                      {modalData.createdBy}
+                    </Col>
+                    <Col lg={6} className="p-2">
+                      <span className="modal-title">Alterado em</span>
+                      <br />
+                      {modalData.updatedAt}
+                    </Col>
+                    <Col lg={6} className="p-2">
+                      <span className="modal-title">Alterado por</span>
+                      <br />
+                      {modalData.updatedBy}
+                    </Col>
+                  </Col>
+                  <Col lg={7} className="m-t-15">
+                    <h6>Observações da Ausência</h6>
+                    <hr />
+                    <Col lg={12}>
+                      <Form.Group controlId="patient">
+                        <Form.Label>Observação</Form.Label>
+
+                        <Form.Control
+                          name="obs"
+                          as="textarea"
+                          rows="12"
+                          disabled={true}
+                          value={modalData.obs}
+                          placeholder="Digite aqui as observações da consulta."
+                        />
+                      </Form.Group>
+                    </Col>
+                  </Col>
+                </Row>
+              )}
+                
               </Modal.Body>
               <Modal.Footer>
                 <Button variant="secondary" onClick={() => setIsModalOpen(false)}>
                   Fechar
                 </Button>
-                <Button
-                  variant="primary"
-                  disabled={isDisabled}
-                  onClick={() => submitUpdate(modalData.scheduleId, { obs: modalData.obs, statusId: modalData.statusId })}
-                >
-                  {isDisabled ? 'Salvando...' : 'Salvar Alterações'} 
-                </Button>
+                {modalData.type === 'SCHEDULE' && (
+                  <Button
+                    variant="primary"
+                    disabled={isDisabled}
+                    onClick={() => submitUpdate(modalData.scheduleId, { obs: modalData.obs, statusId: modalData.statusId })}
+                  >
+                    {isDisabled ? 'Salvando...' : 'Salvar Alterações'} 
+                  </Button>
+                )}
               </Modal.Footer>
             </Modal>
 
