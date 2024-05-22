@@ -37,7 +37,7 @@ const Confirmation = () => {
     await axios
       .get(`${ENDPOINT.api}patients/phone/${patientDocument.patient.replace(/\D/g, '')}`, ENDPOINT.configunath)
       .then((response) => {
-        if (response.data.response.schedules.length > 0) {
+        if (response.data.response.schedules) {
           setPatientSchedule(response.data.response.schedules);
           setIsOpen(true);
         } else {
