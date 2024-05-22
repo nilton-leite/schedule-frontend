@@ -38,7 +38,7 @@ const Confirmation = () => {
       .get(`${ENDPOINT.api}patients/phone/${patientDocument.patient.replace(/\D/g, '')}`, ENDPOINT.configunath)
       .then((response) => {
         if (response.data.response.schedules.length > 0) {
-          setPatientSchedule(response.data.response.schedules[0]);
+          setPatientSchedule(response.data.response.schedules);
           setIsOpen(true);
         } else {
           sweetAlertHandler({
@@ -66,7 +66,7 @@ const Confirmation = () => {
 
   const updateSchedule = async (event, statusId) => {
     await axios
-      .patch(`${ENDPOINT.api}schedules/${patientSchedule.scheduleId}`, { statusId: statusId }, ENDPOINT.configunath)
+      .patch(`${ENDPOINT.api}schedules/confirmation/${patientSchedule.scheduleId}`, { statusId: statusId }, ENDPOINT.configunath)
       .then((response) => {
         if (response.data.statusCode === 200) {
           if (statusId === 4) {
