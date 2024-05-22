@@ -24,7 +24,8 @@ function Schedule() {
     patientId: '',
     doctorId: '',
     scheduleTypeId: 1,
-    obs: ''
+    obs: '',
+    healthInsuranceId: ''
   };
   const modelPatient = {
     patientId: '',
@@ -52,6 +53,8 @@ function Schedule() {
   const [typeSelectedOption, setTypeSelectedOption] = useState(1);
   const [searchValue, setSearchValue] = useState('');
   const [scheduleTypes, setScheduleTypes] = useState('');
+  const [healthInsurances, setHealthInsurances] = useState([]);
+  const [healthInsuranceSelectedOption, setHealthInsuranceSelectedOption] = useState([]);
 
   const { loading } = useContext(LoadingContext);
 
@@ -61,6 +64,7 @@ function Schedule() {
     getDoctors();
     getSchedules();
     getScheduleTypes();
+    getHealthInsurances();
   }, []);
 
   const sweetAlertHandler = (alert) => {
@@ -103,7 +107,6 @@ function Schedule() {
     await axios
       .get(`${ENDPOINT.api}schedules`, ENDPOINT.config)
       .then(async (response) => {
-        console.log(response);
         getStatus();
         const newdata = await transformData(response.data.response);
         const orderednd = newdata.sort((a, b) => b.scheduleId - a.scheduleId);
@@ -287,13 +290,14 @@ function Schedule() {
         {
           data: formatDate(newSchedule.data),
           time: newSchedule.time,
-          hasHealthInsurance: false,
+          hasHealthInsurance: newSchedule.healthInsuranceId !== '' && newSchedule.healthInsuranceId !== null ? true : false,
           hasFirstQuery: newSchedule.hasFirstQuery,
           statusId: 2,
           obs: newSchedule.obs,
           patientId: parseInt(newSchedule.patientId, 10),
           doctorId: parseInt(newSchedule.doctorId, 10),
-          scheduleTypeId: newSchedule.scheduleTypeId
+          scheduleTypeId: newSchedule.scheduleTypeId,
+          healthInsuranceId: newSchedule.healthInsuranceId !== '' &&  newSchedule.healthInsuranceId !== null ? newSchedule.healthInsuranceId : null
         },
         ENDPOINT.config
       )
@@ -306,6 +310,10 @@ function Schedule() {
             showCloseButton: true
           });
           setNewSchedule(model);
+          setTypeSelectedOption('');
+          setHealthInsuranceSelectedOption('');
+          setDoctorSelectedOption('');
+          setPatientSelectedOption('');
           getSchedules();
         } else {
           if (response.data.statusCode === 400) {
@@ -334,6 +342,7 @@ function Schedule() {
     setPatientSelectedOption(patients.find((option) => option.value === editItem.patientId));
     setStatusSelectedOption(statusSelection.find((option) => option.value === editItem.statusId));
     setTypeSelectedOption(scheduleTypes.find((option) => option.value === editItem.scheduleTypeId));
+    setHealthInsuranceSelectedOption(healthInsurances.find((option) => option.value === editItem.healthInsuranceId));
 
     const [date] = editItem.data.split('T');
     const [day, month, year] = date.split('/');
@@ -343,13 +352,14 @@ function Schedule() {
     setNewSchedule({
       data: dateInstance,
       time: editItem.time,
-      hasHealthInsurance: false,
+      hasHealthInsurance: editItem.healthInsuranceId !== '' && editItem.healthInsuranceId !== null ? true : false,
       hasFirstQuery: editItem.hasFirstQuery,
       statusId: editItem.statusId,
       patientId: editItem.patientId,
       doctorId: editItem.doctorId,
       scheduleId: editItem.scheduleId,
-      scheduleTypeId: editItem.scheduleTypeId
+      scheduleTypeId: editItem.scheduleTypeId,
+      healthInsuranceId: editItem.healthInsuranceId,
     });
   };
 
@@ -371,9 +381,6 @@ function Schedule() {
         }
       }
     }
-
-    console.log(updatedData);
-
     if (Object.keys(updatedData).length > 0) submitUpdate(newSchedule.scheduleId, updatedData);
   };
 
@@ -381,8 +388,6 @@ function Schedule() {
     await axios
       .patch(`${ENDPOINT.api}schedules/${updateId}`, updatedData, ENDPOINT.config)
       .then((response) => {
-        console.log(response.data.statusCode);
-
         if (response.data.statusCode === 200) {
           sweetAlertHandler({
             title: 'Tudo certo!',
@@ -390,10 +395,10 @@ function Schedule() {
             icon: 'success',
             showCloseButton: true
           });
-          setNewSchedule(model);
           setUpdatingData(false);
           setIsOpen(false);
           getSchedules();
+          setNewSchedule(model);
         } else {
           if (response.data.statusCode === 400) {
             sweetAlertHandler({ title: 'Poxa...', text: response.data.response, icon: 'error', showCloseButton: true });
@@ -426,9 +431,8 @@ function Schedule() {
             icon: 'success',
             showCloseButton: true
           });
-          setPatient(model);
+          setPatient(modelPatient);
           getPatients();
-          console.log(response);
           handlePatientSelectChange({ value: response.data.response.patientId, label: response.data.response.name });
           setIsRegisterPatient(false);
         } else {
@@ -492,6 +496,30 @@ function Schedule() {
   const handleClear = () => {
     setNewSchedule(model);
     setSchedsToday([]);
+  };
+
+  const getHealthInsurances = async () => {
+    await axios
+      .get(`${ENDPOINT.api}health-insurance`, ENDPOINT.config)
+      .then((response) => {
+        setHealthInsurances(
+          response.data.response.map((item) => ({
+            value: item.healthInsuranceId,
+            label: item.name
+          }))
+        );
+      })
+      .catch((err) => {
+        console.error('Não foi possível puxar os Planos de Saúde.' + err);
+      });
+  };
+
+  const handleHealthInsuranceSelectChange = async (selected) => {
+    setHealthInsuranceSelectedOption(selected);
+    setNewSchedule((prevData) => ({
+      ...prevData,
+      healthInsuranceId: selected.value
+    }));
   };
 
   return (
@@ -645,6 +673,21 @@ function Schedule() {
                               />
                             </Form.Group>
                           </Col>
+                          <Col lg={3}>
+                          <Form.Group controlId="insurances">
+                            <Form.Label>Plano de Saúde</Form.Label>
+                            <Select
+                              name="insurances"
+                              options={healthInsurances}
+                              value={healthInsuranceSelectedOption}
+                              className="basic-multi-select"
+                              classNamePrefix="select"
+                              placeholder="Selecione"
+                              onChange={handleHealthInsuranceSelectChange}
+                              isSearchable
+                            />
+                          </Form.Group>
+                        </Col>
                           {updatingData ? (
                             <Col lg={3}>
                               <Form.Group controlId="statusSelection">

@@ -253,8 +253,6 @@ const FullEventCalendar = () => {
       
     }); */
 
-    console.log('NEW DARA', newData);
-
     return newData;
   };
 
@@ -532,8 +530,6 @@ const FullEventCalendar = () => {
     await Promise.all(
       data.map(async (doctor) => {
         const { doctorId, name, schedules } = doctor;
-        console.log('statusFormSelection', statusFormSelection);
-        console.log('status', statusSelection)
         await Promise.all(
           schedules.map(async (schedule) => {
             const {
@@ -796,10 +792,10 @@ const FullEventCalendar = () => {
             icon: 'success',
             showCloseButton: true
           });
-          setPatient(model);
           getPatients();
           handlePatientSelectChange({ value: response.data.response.patientId, label: response.data.response.name });
           setIsRegisterPatient(false);
+          setPatient(modelPatient);
         } else {
           sweetAlertHandler({ title: 'Poxa...', text: 'Não foi possivel cadastrar.', icon: 'error', showCloseButton: true });
         }
@@ -962,7 +958,7 @@ const FullEventCalendar = () => {
                     <Col lg={6} className="p-2">
                       <span className="modal-title">Retorno?</span>
                       <br />
-                      {modalData.hasFirstQuery ? 'Sim' : 'Não'}
+                      {!modalData.hasFirstQuery ? 'Sim' : 'Não'}
                     </Col>{' '}
                     <Col lg={6} className="p-2">
                       <span className="modal-title">Observações</span>
@@ -1040,7 +1036,7 @@ const FullEventCalendar = () => {
                       </Row>
                       <Row>
                         <Col lg={12}>
-                          <Form.Group controlId="acceptedMessage">
+                          <Form.Group controlId="hasFirstQuery">
                             <Form.Label className="m-b-15">
                               Retorno?<span className="mandatory">*</span>
                             </Form.Label>
