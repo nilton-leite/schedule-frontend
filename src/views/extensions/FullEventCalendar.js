@@ -807,7 +807,7 @@ const FullEventCalendar = () => {
           setIsRegisterPatient(false);
           setPatient(modelPatient);
         } else {
-          sweetAlertHandler({ title: 'Poxa...', text: 'Não foi possivel cadastrar.', icon: 'error', showCloseButton: true });
+          sweetAlertHandler({ title: 'Poxa...', text: response.data.message, icon: 'error', showCloseButton: true });
         }
       })
       .catch((err) => {
