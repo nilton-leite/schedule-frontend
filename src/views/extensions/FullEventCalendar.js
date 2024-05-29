@@ -42,7 +42,7 @@ const FullEventCalendar = () => {
     data: '',
     time: '',
     hasHealthInsurance: false,
-    hasFirstQuery: true,
+    hasFirstQuery: false,
     statusId: 2,
     patientId: '',
     doctorId: '',
@@ -198,9 +198,10 @@ const FullEventCalendar = () => {
         const formattedDate = `${year}-${month}-${day}`;
         const combinedStart = `${formattedDate} ${schedule.time}`;
         const combinedEnd = `${formattedDate} ${add15MinutesToTime(schedule.time)}`;
+        // && schedule.type.includes("xame") ? '📁' : ''
         newData.push({
           id: schedule.scheduleId,
-          title: `${schedule.type == 'Exame' ? '📁' : ''} (${doctor.name}) ${schedule.patientName} | ${setStatusIcon(schedule.statusId)} ${
+          title: `[${schedule.type}] (${doctor.name}) ${schedule.patientName} | ${setStatusIcon(schedule.statusId)} ${
             schedule.healthInsurance !== null ? `{${schedule.healthInsurance.name}}` : ''
           }`,
           description: 'io',
