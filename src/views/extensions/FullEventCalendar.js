@@ -41,6 +41,7 @@ const FullEventCalendar = () => {
   const model = {
     data: '',
     time: '',
+    timeEnd: '',
     hasHealthInsurance: false,
     hasFirstQuery: false,
     statusId: 2,
@@ -58,9 +59,10 @@ const FullEventCalendar = () => {
   const [patients, setPatients] = useState([]);
   const [existingPatients, setExistingPatients] = useState([]);
   const [doctors, setDoctors] = useState([]);
+  const [doctorsAux, setDoctorsAux] = useState([]);
   const [doctorsFilter, setDoctorsFilter] = useState([]);
   const [statusFormSelection, setStatusFormSelection] = useState([]);
-  const [doctorSelectedOption, setDoctorSelectedOption] = useState([]);
+  const [doctorSelectedOption, setDoctorSelectedOption] = useState(null);
   const [patientSelectedOption, setPatientSelectedOption] = useState([]);
   const [healthInsuranceSelectedOption, setHealthInsuranceSelectedOption] = useState([]);
   const [typeSelectedOption, setTypeSelectedOption] = useState(1);
@@ -92,6 +94,22 @@ const FullEventCalendar = () => {
       icon: alert.icon,
       showCloseButton: true
     });
+  };
+
+  const addAllMinutesToTime = (timeString, minutesAdd) => {
+    const [hours, minutes, seconds] = timeString.split(':').map(Number);
+
+    const totalMinutes = hours * 60 + minutes + minutesAdd;
+
+    const updatedHours = Math.floor(totalMinutes / 60) % 24;
+    const updatedMinutes = totalMinutes % 60;
+    const updatedSeconds = seconds;
+
+    const formattedTime = `${String(updatedHours).padStart(2, '0')}:${String(updatedMinutes).padStart(2, '0')}:${String(
+      updatedSeconds
+    ).padStart(2, '0')}`;
+
+    return formattedTime;
   };
 
   const add15MinutesToTime = (timeString) => {
@@ -197,11 +215,32 @@ const FullEventCalendar = () => {
         const [day, month, year] = schedule.data.split('/');
         const formattedDate = `${year}-${month}-${day}`;
         const combinedStart = `${formattedDate} ${schedule.time}`;
-        const combinedEnd = `${formattedDate} ${add15MinutesToTime(schedule.time)}`;
-        // && schedule.type.includes("xame") ? '📁' : ''
+        const combinedEnd = `${formattedDate} ${schedule.timeEnd}`;
+        
+        let type = '';
+        switch (schedule.type) {
+          case 'Exame Videolaringo':
+            type = 'VDL'
+            break;
+          case 'Exame Videonaso':
+            type = 'VNS'
+            break;
+          case 'Exame Videonistagmografia':
+            type = 'VNG'
+            break;
+          case 'Exame Audiometria Bera (Infantil)':
+            type = 'BERA'
+            break;
+          case 'Exame Normal':
+            type = 'Exame'
+            break;
+          default:
+            type = 'Consulta'
+            break;
+        }
         newData.push({
           id: schedule.scheduleId,
-          title: `[${schedule.type}] (${doctor.name}) ${schedule.patientName} | ${setStatusIcon(schedule.statusId)} ${
+          title: `[${type}] (${doctor.name}) ${schedule.patientName} | ${setStatusIcon(schedule.statusId)} ${
             schedule.healthInsurance !== null ? `{${schedule.healthInsurance.name}}` : ''
           }`,
           description: 'io',
@@ -223,7 +262,11 @@ const FullEventCalendar = () => {
             statusId: schedule.statusId,
             time: schedule.time,
             doctor: doctor.name,
-            healthInsurance: schedule.healthInsurance !== null ? schedule.healthInsurance.name : null
+            healthInsurance: schedule.healthInsurance !== null ? schedule.healthInsurance.name : null,
+            createdAt: schedule.createdAt,
+            updatedAt: schedule.updatedAt,
+            createdBy: schedule.createdBy,
+            updatedBy: schedule.lastChangedBy,
           }
         });
       });
@@ -382,16 +425,24 @@ const FullEventCalendar = () => {
   const newSchedule = (args) => {
     getPatients();
     setCalendarDate(args.dateStr);
-
     if (args.dateStr.length > 11) {
       const [date] = args.dateStr.split('T');
       const [year, month, day] = date.split('-');
       const dateInstance = new Date(year, month - 1, day);
       setScheduleDate(dateInstance);
       const timePart = args.dateStr.split('T')[1].split('-')[0];
+      let timeEnd = '';
+      
+      if (doctorSelectedOption) {
+        const doctorSelected = doctorsAux.find((item) => item.doctorId === doctorSelectedOption.value);
+        timeEnd = addAllMinutesToTime(timePart, doctorSelected.timePerQuery);
+      } else {
+        timeEnd = addAllMinutesToTime(timePart, 15); // 15 minutes default
+      }
       setNewFormSchedule((prevData) => ({
         ...prevData,
-        time: timePart
+        time: timePart,
+        timeEnd: timeEnd
       }));
     } else {
       const [year, month, day] = args.dateStr.split('-');
@@ -399,7 +450,8 @@ const FullEventCalendar = () => {
       setScheduleDate(dateInstance);
       setNewFormSchedule((prevData) => ({
         ...prevData,
-        time: ''
+        time: '',
+        timeEnd: ''
       }));
     }
 
@@ -504,27 +556,12 @@ const FullEventCalendar = () => {
             label: item.name
           }))
         );
+        setDoctorsAux(response.data.response);
       })
       .catch((err) => {
         console.error('Não foi possível puxar os Médicos.' + err);
       });
   };
-
-  // const getFormStatus = async () => {
-  //   await axios
-  //     .get(`${ENDPOINT.api}status`, ENDPOINT.config)
-  //     .then(async (response) => {
-  //       await setStatusFormSelection(
-  //         response.data.response.map((item) => ({
-  //           value: item.statusId,
-  //           label: item.description
-  //         }))
-  //       );
-  //     })
-  //     .catch((err) => {
-  //       console.error('Não foi possível puxar os Status.' + err);
-  //     });
-  // };
 
   const getDoctorsFilter = () => {
     setDoctorsFilter(doctors);
@@ -639,6 +676,7 @@ const FullEventCalendar = () => {
         {
           data: scheduleDate,
           time: newFormSchedule.time,
+          timeEnd: newFormSchedule.timeEnd,
           hasHealthInsurance: newFormSchedule.healthInsuranceId !== '' &&  newFormSchedule.healthInsuranceId !== null ? true : false,
           hasFirstQuery: newFormSchedule.hasFirstQuery,
           statusId: 2,
@@ -701,6 +739,7 @@ const FullEventCalendar = () => {
     setNewFormSchedule({
       data: dateInstance,
       time: editItem.time,
+      timeEnd: editItem.timeEnd,
       hasHealthInsurance: false,
       hasFirstQuery: editItem.hasFirstQuery,
       statusId: editItem.statusId,
@@ -988,6 +1027,26 @@ const FullEventCalendar = () => {
                       <br />
                       {modalData.healthInsurance ?? ' - '}
                     </Col>
+                    <Col lg={6} className="p-2">
+                      <span className="modal-title">Criado em</span>
+                      <br />
+                      {modalData.createdAt}
+                    </Col>
+                    <Col lg={6} className="p-2">
+                      <span className="modal-title">Criado por</span>
+                      <br />
+                      {modalData.createdBy}
+                    </Col>
+                    <Col lg={6} className="p-2">
+                      <span className="modal-title">Alterado em</span>
+                      <br />
+                      {modalData.updatedAt}
+                    </Col>
+                    <Col lg={6} className="p-2">
+                      <span className="modal-title">Alterado por</span>
+                      <br />
+                      {modalData.updatedBy}
+                    </Col>
                   </Col>
 
                   <Col lg={7} className="m-t-15">
@@ -1223,8 +1282,7 @@ const FullEventCalendar = () => {
                         </Col>
                         <Col lg={2}>
                           <Form.Group controlId="time">
-                            <Form.Label>Hora</Form.Label>
-
+                            <Form.Label>Hora Inicial</Form.Label>
                             <InputMask
                               className="form-control"
                               name="time"
@@ -1232,6 +1290,21 @@ const FullEventCalendar = () => {
                               placeholder="09:00:00"
                               mask="99:99:99"
                               value={newFormSchedule.time}
+                              onChange={handleFormChange}
+                            />
+                          </Form.Group>
+                        </Col>
+                        <Col lg={2}>
+                          <Form.Group controlId="timeEnd">
+                            <Form.Label>Hora Final</Form.Label>
+
+                            <InputMask
+                              className="form-control"
+                              name="timeEnd"
+                              type="text"
+                              placeholder="09:00:00"
+                              mask="99:99:99"
+                              value={newFormSchedule.timeEnd}
                               onChange={handleFormChange}
                             />
                           </Form.Group>
