@@ -616,7 +616,7 @@ const FullEventCalendar = () => {
     setTypeSelectedOption(selected);
     setNewFormSchedule((prevData) => ({
       ...prevData,
-      scheduleTypeId: selected.value
+      scheduleTypeId: selected ? selected.value : ''
     }));
   };
 
@@ -624,7 +624,7 @@ const FullEventCalendar = () => {
     setPatientSelectedOption(selected);
     setNewFormSchedule((prevData) => ({
       ...prevData,
-      patientId: selected.value
+      patientId: selected ? selected.value : ''
     }));
   };
 
@@ -632,7 +632,7 @@ const FullEventCalendar = () => {
     setHealthInsuranceSelectedOption(selected);
     setNewFormSchedule((prevData) => ({
       ...prevData,
-      healthInsuranceId: selected.value
+      healthInsuranceId: selected ? selected.value : ''
     }));
   };
 
@@ -640,7 +640,7 @@ const FullEventCalendar = () => {
     setDoctorSelectedOption(selected);
     setNewFormSchedule((prevData) => ({
       ...prevData,
-      doctorId: selected.value
+      doctorId: selected ? selected.value : ''
     }));
   };
 
