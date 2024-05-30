@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useContext } from 'react';
 import InputMask from 'react-input-mask';
-import { Row, Col, Card, Button, Collapse, Form, Table, OverlayTrigger, Tooltip } from 'react-bootstrap';
+import { Row, Col, Card, Button, Collapse, Form, Table, OverlayTrigger, Tooltip, Pagination } from 'react-bootstrap';
 import Swal from 'sweetalert2';
 import withReactContent from 'sweetalert2-react-content';
 import { ENDPOINT } from '../../config/constant';
@@ -12,6 +12,7 @@ import isValidCPF from '../../services/cpfvalidator';
 import axios from 'axios';
 import { LoadingContext } from '../../contexts/LoadingContext';
 import Loader from '../../components/Loader/Loader';
+import PaginationComponent from '../components/Pagination';
 
 function Schedule() {
   registerLocale('pt-BR', ptBR);
@@ -43,18 +44,24 @@ function Schedule() {
   const [doctors, setDoctors] = useState([]);
   const [statusSelection, setStatusSelection] = useState([]);
   const [doctorSelectedOption, setDoctorSelectedOption] = useState([]);
+  const [filterDoctorSelectedOption, setFilterDoctorSelectedOption] = useState(null);
   const [patientSelectedOption, setPatientSelectedOption] = useState([]);
+  const [filterPatientSelectedOption, setFilterPatientSelectedOption] = useState(null);
   const [statusSelectedOption, setStatusSelectedOption] = useState([]);
   const [scheduleDate, setScheduleDate] = useState(new Date());
+  const [filterDate, setFilterDate] = useState(null);
   const [isRegisterPatient, setIsRegisterPatient] = useState(false);
   const [patient, setPatient] = useState(modelPatient);
   const [exist, setExist] = useState(false);
   const [existingPatients, setExistingPatients] = useState([]);
   const [typeSelectedOption, setTypeSelectedOption] = useState(1);
+  const [filterTypeSelectedOption, setFilterTypeSelectedOption] = useState(null);
   const [searchValue, setSearchValue] = useState('');
   const [scheduleTypes, setScheduleTypes] = useState('');
   const [healthInsurances, setHealthInsurances] = useState([]);
   const [healthInsuranceSelectedOption, setHealthInsuranceSelectedOption] = useState([]);
+  const [page, setPage] = useState(1);
+  const [count, setCount] = useState(0);
 
   const { loading } = useContext(LoadingContext);
 
@@ -77,17 +84,6 @@ function Schedule() {
     });
   };
 
-  const CPFMask = (value) => {
-    const cleanedValue = value.replace(/\D/g, '');
-
-    let formattedValue = cleanedValue.slice(0, 3);
-    if (cleanedValue.length > 3) formattedValue += `.${cleanedValue.slice(3, 6)}`;
-    if (cleanedValue.length > 6) formattedValue += `.${cleanedValue.slice(6, 9)}`;
-    if (cleanedValue.length > 9) formattedValue += `-${cleanedValue.slice(9, 11)}`;
-
-    return formattedValue;
-  };
-
   function formatDate(inputDate) {
     const parts = inputDate.split('-');
     const year = parts[2];
@@ -103,16 +99,28 @@ function Schedule() {
     setSchedsToday(filteredItems);
   };
 
-  const getSchedules = async () => {
+  const filterSchedules = async () => {
+    getSchedules();
+  }
+
+  const getSchedules = async (pages) => {
+    if (!pages) pages = page;
+    setPage(pages);
+
+    let query = `limit=10&page=${pages}`;
+    if (filterPatientSelectedOption && filterPatientSelectedOption.value) query += `&patientId=${filterPatientSelectedOption.value}`;
+    if (filterDoctorSelectedOption && filterDoctorSelectedOption.value) query += `&doctorId=${filterDoctorSelectedOption.value}`;
+    if (filterTypeSelectedOption && filterTypeSelectedOption.value) query += `&scheduleTypeId=${filterTypeSelectedOption.value}`;
+    if (filterDate) query += `&data=${filterDate.toISOString().split('T')[0]}`;
     await axios
-      .get(`${ENDPOINT.api}schedules`, ENDPOINT.config)
+      .get(`${ENDPOINT.api}schedules/list?${query}`, ENDPOINT.config)
       .then(async (response) => {
         getStatus();
-        const newdata = await transformData(response.data.response);
+        const newdata = await transformData(response.data.response.schedules);
+        setCount(response.data.response.count)
         const orderednd = newdata.sort((a, b) => b.scheduleId - a.scheduleId);
 
         setScheds(orderednd);
-        await getTodaySchedules(orderednd);
       })
       .catch((err) => {
         console.error('Não foi possível puxar as consultas.' + err);
@@ -184,50 +192,45 @@ function Schedule() {
   };
 
   const transformData = async (data) => {
-    console.log('datraaa', data)
     const transformedData = [];
 
     await Promise.all(
-      data.map(async (doctor) => {
-        const { doctorId, name, schedules } = doctor;
+      data.map(async (schedule) => {  
+        const {
+          scheduleId,
+          data,
+          time,
+          statusId,
+          hasFirstQuery,
+          lastChangedBy,
+          descriptionStatus,
+          createdBy,
+          createdAt,
+          updatedAt,
+          type,
+          patients: { patientId, name: patientName },
+          doctorId,
+          doctorName
+        } = schedule;
 
-        await Promise.all(
-          schedules.map(async (schedule) => {
-            const {
-              scheduleId,
-              data,
-              time,
-              statusId,
-              hasFirstQuery,
-              lastChangedBy,
-              descriptionStatus,
-              createdBy,
-              createdAt,
-              updatedAt,
-              type,
-              patients: { patientId, name: patientName }
-            } = schedule;
-
-            transformedData.push({
-              scheduleId,
-              doctorId,
-              name,
-              patientId,
-              patientName,
-              data,
-              time,
-              statusId,
-              healthInsuranceId: schedule.healthInsurance && schedule.healthInsurance.healthInsuranceId ? schedule.healthInsurance.healthInsuranceId : null,
-              statusName: descriptionStatus,
-              lastChangedBy,
-              createdBy,
-              createdAt,
-              updatedAt,
-              type,
-              hasFirstQuery: hasFirstQuery
-            });
-          })
-        );
+        transformedData.push({
+          scheduleId,
+          doctorId,
+          doctorName,
+          patientId,
+          patientName,
+          data,
+          time,
+          statusId,
+          healthInsuranceId: schedule.healthInsurance && schedule.healthInsurance.healthInsuranceId ? schedule.healthInsurance.healthInsuranceId : null,
+          statusName: descriptionStatus,
+          lastChangedBy,
+          createdBy,
+          createdAt,
+          updatedAt,
+          type,
+          hasFirstQuery: hasFirstQuery
+        });
       })
     );
 
@@ -242,12 +245,20 @@ function Schedule() {
     }));
   };
 
+  const handleFilterPatientSelectChange = async (selected) => {
+    setFilterPatientSelectedOption(selected);
+  };
+
   const handleDoctorSelectChange = async (selected) => {
     setDoctorSelectedOption(selected);
     setNewSchedule((prevData) => ({
       ...prevData,
       doctorId: selected.value
     }));
+  };
+
+  const handleFilterDoctorSelectChange = async (selected) => {
+    setFilterDoctorSelectedOption(selected);
   };
 
   const handleStatusSelectChange = async (selected) => {
@@ -266,12 +277,20 @@ function Schedule() {
     }));
   };
 
+  const handleFilterTypeSelectChange = async (selected) => {
+    setFilterTypeSelectedOption(selected);
+  };
+
   const handleDateSelectChange = (date) => {
     setScheduleDate(date);
     setNewSchedule((prevData) => ({
       ...prevData,
       data: `${date.getMonth() + 1}-${date.getDate()}-${date.getFullYear()}`
     }));
+  };
+
+  const handleFilterDateSelectChange = (date) => {
+    setFilterDate(date);
   };
 
   const handleChange = (e) => {
@@ -520,6 +539,32 @@ function Schedule() {
     }));
   };
 
+  const abbreviationType = (type) => {
+    let abbreviation = '';
+    switch (type) {
+      case 'Exame Videolaringo':
+        abbreviation = 'VDL'
+        break;
+      case 'Exame Videonaso':
+        abbreviation = 'VDN'
+        break;
+      case 'Exame Videonistagmografia':
+        abbreviation = 'VNG'
+        break;
+      case 'Exame Audiometria Bera (Infantil)':
+        abbreviation = 'BERA INF'
+        break;
+      case 'Exame Normal':
+        abbreviation = 'Exame'
+        break;
+      default:
+        abbreviation = 'Consulta'
+        break;
+    }
+
+    return abbreviation
+  }
+
   return (
     <React.Fragment>
       {loading && (
@@ -594,7 +639,7 @@ function Schedule() {
                                 options={patients}
                                 className="basic-multi-select"
                                 classNamePrefix="select"
-                                placeholder="Digite aqui para procurar."
+                                placeholder="Selecione"
                                 value={patientSelectedOption}
                                 onChange={handlePatientSelectChange}
                                 isSearchable
@@ -828,102 +873,11 @@ function Schedule() {
         <Col>
           <Card>
             <Card.Header>
-              <Card.Title as="h5">Consultas de Hoje</Card.Title>
-            </Card.Header>
-            <Card.Body>
-              <Row className="m-b-20">
-                <Col lg={4}>
-                  <Form.Group controlId="search">
-                    <Form.Control
-                      name="search"
-                      type="text"
-                      required
-                      placeholder="Digite aqui o nome do paciente para buscar."
-                      onChange={handleSearch}
-                      onBlur={filterSchedsToday}
-                      onKeyDown={function (e) {
-                        if (e.key === 'Enter') {
-                          filterSchedsToday();
-                        }
-                      }}
-                      value={searchValue}
-                    />
-                  </Form.Group>
-                </Col>
-              </Row>
-              {schedsToday && schedsToday.length > 0 ? (
-                <Table responsive hover size="sm">
-                  <thead>
-                    <tr>
-                      <th>#</th>
-                      <th>Tipo</th>
-                      <th>Médico</th>
-                      <th>Paciente</th>
-                      <th>Data</th>
-                      <th>Hora</th>
-                      <th>Situação</th>
-                      <th></th>
-                      <th></th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {schedsToday.map((item) => (
-                      <tr key={item.scheduleId}>
-                        <td>{item.scheduleId}</td>
-                        <td>{item.type}</td>
-                        <td>{item.name}</td>
-                        <td>{item.patientName}</td>
-                        <td>{item.data}</td>
-                        <td>{item.time}</td>
-                        <td>{item.statusName}</td>
-                        <td>
-                          {' '}
-                          <OverlayTrigger
-                            placement="top"
-                            overlay={
-                              <Tooltip id={`tooltip-top`}>
-                                Criado por {item.createdBy} em {item.createdAt}. Atualizado pela última vez em {item.updatedAt} por{' '}
-                                {item.lastChangedBy}.{' '}
-                              </Tooltip>
-                            }
-                          >
-                            <i className="feather icon-info" />
-                          </OverlayTrigger>
-                        </td>
-                        <td>
-                          <Button
-                            size="sm"
-                            variant="light"
-                            className="float-right mr-md"
-                            onClick={() => {
-                              submitEdit(item);
-                            }}
-                          >
-                            <i className="feather icon-edit-2" /> Editar
-                          </Button>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </Table>
-              ) : (
-                <center>
-                  <span>Nenhuma consulta encontrada para hoje.</span>
-                </center>
-              )}
-            </Card.Body>
-          </Card>
-        </Col>
-      </Row>
-      <Row>
-        <Col>
-          <Card>
-            <Card.Header>
               <Card.Title as="h5">Nossas Consultas</Card.Title>
             </Card.Header>
             <Card.Body>
               <Row className="m-b-20">
-                <Col lg={4}>
+                {/* <Col lg={4}>
                   <Form.Group controlId="search">
                     <Form.Control
                       name="search"
@@ -940,13 +894,84 @@ function Schedule() {
                       value={searchValue}
                     />
                   </Form.Group>
+                </Col> */}
+                <Col lg={2}>
+                    <Form.Group controlId="filterScheduleTypeId">
+                      <Form.Label>Tipo</Form.Label>
+                      <Select
+                        name="filterScheduleTypeId"
+                        options={scheduleTypes}
+                        className="basic-multi-select"
+                        classNamePrefix="select"
+                        placeholder="Tipo"
+                        value={filterTypeSelectedOption}
+                        onChange={handleFilterTypeSelectChange}
+                        isSearchable
+                        isClearable
+                      />
+                    </Form.Group>
+                  </Col>
+                 <Col lg={3}>
+                  <Form.Group controlId="filterPatientId">
+                    <Form.Label>Paciente</Form.Label>
+
+                    <Select
+                      name="filterPatientId"
+                      options={patients}
+                      className="basic-multi-select"
+                      classNamePrefix="select"
+                      placeholder="Selecione"
+                      value={filterPatientSelectedOption}
+                      onChange={handleFilterPatientSelectChange}
+                      isSearchable
+                      isClearable
+                    />
+                  </Form.Group>
+                </Col>
+
+                <Col lg={3}>
+                  <Form.Group controlId="filterDoctorId">
+                    <Form.Label>Médico</Form.Label>
+
+                    <Select
+                      name="filterDoctorId"
+                      options={doctors}
+                      className="basic-multi-select"
+                      classNamePrefix="select"
+                      placeholder="Selecione"
+                      value={filterDoctorSelectedOption}
+                      onChange={handleFilterDoctorSelectChange}
+                      isSearchable
+                      isClearable
+                    />
+                  </Form.Group>
+                </Col>
+
+                <Col lg={2}>
+                  <Form.Group controlId="filterDate">
+                    <Form.Label>Data</Form.Label>
+
+                    <DatePicker
+                      name="filterData"
+                      locale="pt-BR"
+                      dateFormat="dd/MM/yyyy"
+                      selected={filterDate}
+                      onChange={handleFilterDateSelectChange}
+                      className="form-control"
+                    />
+                  </Form.Group>
+                </Col> 
+                <Col lg={1}>
+                  <Button className="primary mt6 pull-right" onClick={() => {filterSchedules()}}>
+                    <i className="feather icon-search" />
+                  </Button>
                 </Col>
               </Row>
               {scheds && scheds.length > 0 ? (
                 <Table responsive hover size="sm">
                   <thead>
                     <tr>
-                      <th>#</th>
+                      {/* <th>#</th> */}
                       <th>Tipo</th>
                       <th>Médico</th>
                       <th>Paciente</th>
@@ -960,9 +985,9 @@ function Schedule() {
                   <tbody>
                     {scheds.map((item) => (
                       <tr key={item.scheduleId}>
-                        <td>{item.scheduleId}</td>
-                        <td>{item.type}</td>
-                        <td>{item.name}</td>
+                        {/* <td>{item.scheduleId}</td> */}
+                        <td>{abbreviationType(item.type)}</td>
+                        <td>{item.doctorName}</td>
                         <td>{item.patientName}</td>
                         <td>{item.data}</td>
                         <td>{item.time}</td>
@@ -996,6 +1021,7 @@ function Schedule() {
                       </tr>
                     ))}
                   </tbody>
+                  <PaginationComponent page={page} count={count} handlePagination={getSchedules}></PaginationComponent>
                 </Table>
               ) : (
                 <center>

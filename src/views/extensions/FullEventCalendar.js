@@ -223,13 +223,13 @@ const FullEventCalendar = () => {
             type = 'VDL'
             break;
           case 'Exame Videonaso':
-            type = 'VNS'
+            type = 'VDN'
             break;
           case 'Exame Videonistagmografia':
             type = 'VNG'
             break;
           case 'Exame Audiometria Bera (Infantil)':
-            type = 'BERA'
+            type = 'BERA INF'
             break;
           case 'Exame Normal':
             type = 'Exame'
