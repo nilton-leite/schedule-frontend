@@ -33,11 +33,18 @@ function Patient() {
   const [searchValue, setSearchValue] = useState('');
   const [page, setPage] = useState(1);
   const [count, setCount] = useState(0);
+  const [filterPatientSelectedOption, setFilterPatientSelectedOption] = useState(null);
+  const [patientsFilter, setPatientsFilter] = useState([]);
 
   useEffect(() => {
     getPatients();
+    getPatientsFilter();
     getHealthInsurances();
   }, []);
+
+  const handleFilterPatientSelectChange = async (selected) => {
+    setFilterPatientSelectedOption(selected);
+  };
 
   const sweetAlertHandler = (alert) => {
     const MySwal = withReactContent(Swal);
@@ -49,16 +56,33 @@ function Patient() {
     });
   };
 
+  const getPatientsFilter = async () => {
+    await axios
+      .get(`${ENDPOINT.api}patients`, ENDPOINT.config)
+      .then((response) => {
+        setPatientsFilter(
+          response.data.response.map((item) => ({
+            value: item.patientId,
+            label: `(${item.phone}) ${item.name} `
+          }))
+        );
+      })
+      .catch((err) => {
+        console.error('Não foi possível puxar os Pacientes.' + err);
+      });
+  };
+
+  const filterPatients = async () => {
+    getPatients();
+  }
+
   const getPatients = async (pages) => {
     if (!pages) pages = page;
     setPage(pages);
-
+    
     let query = `limit=10&page=${pages}`;
-    // if (filterPatientSelectedOption && filterPatientSelectedOption.value) query += `&patientId=${filterPatientSelectedOption.value}`;
-    // if (filterDoctorSelectedOption && filterDoctorSelectedOption.value) query += `&doctorId=${filterDoctorSelectedOption.value}`;
-    // if (filterTypeSelectedOption && filterTypeSelectedOption.value) query += `&scheduleTypeId=${filterTypeSelectedOption.value}`;
-    // if (filterDate) query += `&data=${filterDate.toISOString().split('T')[0]}`;
-
+    if (filterPatientSelectedOption && filterPatientSelectedOption.value) query += `&patientId=${filterPatientSelectedOption.value}`;
+    
     await axios
       .get(`${ENDPOINT.api}patients/list?${query}`, ENDPOINT.config)
       .then((response) => {
@@ -284,11 +308,6 @@ function Patient() {
     setSearchValue(e.target.value);
   };
 
-  const filterPatients = () => {
-    const filtered = patients.filter((item) => item.name.toLowerCase().includes(searchValue.toLowerCase()));
-    setPatients(filtered);
-  };
-
   const handleClear = () => {
     setPatient(model);
     setUpdatingData(false);
@@ -503,24 +522,32 @@ function Patient() {
             </Card.Header>
             <Card.Body>
               <Row className="m-b-20">
-                <Col lg={4}>
-                  <Form.Group controlId="search">
-                    <Form.Control
-                      name="search"
-                      type="text"
-                      required
-                      placeholder="Digite aqui o nome do paciente para buscar."
-                      onChange={handleSearch}
-                      onBlur={filterPatients}
-                      onKeyDown={function (e) {
-                        if (e.key === 'Enter') {
-                          filterPatients();
-                        }
-                      }}
-                      value={searchValue}
-                    />
-                  </Form.Group>
-                </Col>
+                <Col lg={3}>
+                    <Form.Group controlId="filterPatientId">
+                      <Form.Label>Paciente</Form.Label>
+
+                      <Select
+                        name="filterPatientId"
+                        options={patientsFilter}
+                        className="basic-multi-select"
+                        classNamePrefix="select"
+                        placeholder="Selecione"
+                        value={filterPatientSelectedOption}
+                        onChange={handleFilterPatientSelectChange}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter")
+                            filterPatients();
+                          }}
+                        isSearchable
+                        isClearable
+                      />
+                    </Form.Group>
+                  </Col>
+                  <Col lg={1}>
+                    <Button className="primary mt6 pull-right" onClick={() => {filterPatients()}}>
+                      <i className="feather icon-search" />
+                    </Button>
+                  </Col>
               </Row>
               {patients && patients.length > 0 ? (
                 <Table responsive hover size="sm">
