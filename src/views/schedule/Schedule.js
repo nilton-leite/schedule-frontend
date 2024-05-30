@@ -877,24 +877,6 @@ function Schedule() {
             </Card.Header>
             <Card.Body>
               <Row className="m-b-20">
-                {/* <Col lg={4}>
-                  <Form.Group controlId="search">
-                    <Form.Control
-                      name="search"
-                      type="text"
-                      required
-                      placeholder="Digite aqui o nome do paciente para buscar."
-                      onChange={handleSearch}
-                      onBlur={filterScheds}
-                      onKeyDown={function (e) {
-                        if (e.key === 'Enter') {
-                          filterScheds();
-                        }
-                      }}
-                      value={searchValue}
-                    />
-                  </Form.Group>
-                </Col> */}
                 <Col lg={2}>
                     <Form.Group controlId="filterScheduleTypeId">
                       <Form.Label>Tipo</Form.Label>

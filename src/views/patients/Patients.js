@@ -7,6 +7,7 @@ import withReactContent from 'sweetalert2-react-content';
 import { ENDPOINT } from '../../config/constant';
 import Select from 'react-select';
 import isValidCPF from '../../services/cpfvalidator';
+import PaginationComponent from '../components/Pagination';
 
 function Patient() {
   const [isOpen, setIsOpen] = useState(false);
@@ -30,6 +31,8 @@ function Patient() {
   const [healthSelected, setHealthSelected] = useState([]);
   const [modalData, setModalData] = useState(model);
   const [searchValue, setSearchValue] = useState('');
+  const [page, setPage] = useState(1);
+  const [count, setCount] = useState(0);
 
   useEffect(() => {
     getPatients();
@@ -46,11 +49,21 @@ function Patient() {
     });
   };
 
-  const getPatients = async () => {
+  const getPatients = async (pages) => {
+    if (!pages) pages = page;
+    setPage(pages);
+
+    let query = `limit=10&page=${pages}`;
+    // if (filterPatientSelectedOption && filterPatientSelectedOption.value) query += `&patientId=${filterPatientSelectedOption.value}`;
+    // if (filterDoctorSelectedOption && filterDoctorSelectedOption.value) query += `&doctorId=${filterDoctorSelectedOption.value}`;
+    // if (filterTypeSelectedOption && filterTypeSelectedOption.value) query += `&scheduleTypeId=${filterTypeSelectedOption.value}`;
+    // if (filterDate) query += `&data=${filterDate.toISOString().split('T')[0]}`;
+
     await axios
-      .get(`${ENDPOINT.api}patients`, ENDPOINT.config)
+      .get(`${ENDPOINT.api}patients/list?${query}`, ENDPOINT.config)
       .then((response) => {
-        setPatients([...response.data.response].sort((a, b) => a.patientId - b.patientId));
+        setPatients([...response.data.response.patients].sort((a, b) => a.patientId - b.patientId));
+        setCount(response.data.response.count);
       })
       .catch((err) => {
         console.error('Não foi possível puxar os Pacientes.' + err);
@@ -513,8 +526,6 @@ function Patient() {
                 <Table responsive hover size="sm">
                   <thead>
                     <tr>
-                      <th>#</th>
-                      <th>CPF</th>
                       <th>Nome</th>
                       <th>Data de Nascimento</th>
                       <th>Telefone</th>
@@ -525,8 +536,6 @@ function Patient() {
                   <tbody>
                     {patients.map((item) => (
                       <tr key={item.patientId}>
-                        <td>{item.patientId}</td>
-                        <td>{item.document}</td>
                         <td>{item.name}</td>
                         <td>{item.dateBirth == 'Invalid date' ? '' : item.dateBirth}</td>
                         <td>{item.phone}</td>
@@ -557,6 +566,7 @@ function Patient() {
                       </tr>
                     ))}
                   </tbody>
+                  <PaginationComponent page={page} count={count} handlePagination={getPatients}></PaginationComponent>
                 </Table>
               ) : (
                 <center>
