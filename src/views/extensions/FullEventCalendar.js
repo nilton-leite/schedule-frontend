@@ -1220,6 +1220,7 @@ const FullEventCalendar = () => {
                               value={typeSelectedOption}
                               onChange={handleTypeSelectChange}
                               isSearchable
+                              isClearable
                             />
                           </Form.Group>
                         </Col>
@@ -1236,6 +1237,7 @@ const FullEventCalendar = () => {
                               value={patientSelectedOption}
                               onChange={handlePatientSelectChange}
                               isSearchable
+                              isClearable
                             />
                           </Form.Group>
                         </Col>
@@ -1262,6 +1264,7 @@ const FullEventCalendar = () => {
                               value={doctorSelectedOption}
                               onChange={handleDoctorSelectChange}
                               isSearchable
+                              isClearable
                             />
                           </Form.Group>
                         </Col>
@@ -1335,6 +1338,7 @@ const FullEventCalendar = () => {
                               placeholder="Selecione"
                               onChange={handleHealthInsuranceSelectChange}
                               isSearchable
+                              isClearable
                             />
                           </Form.Group>
                         </Col>
