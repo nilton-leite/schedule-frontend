@@ -23,6 +23,18 @@ services:
       dockerfile: Dockerfile
     ports:
         - 3000:3000
+    healthcheck:
+      test: [ "CMD", "curl", "-f", "-s", "https://agenda.orlwambier.com.br" ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    labels:
+      - autoheal=true
+  autoheal:
+    image: willfarrell/autoheal:1.2.0
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    restart: always
 volumes: 
   config:
 

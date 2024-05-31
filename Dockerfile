@@ -22,4 +22,9 @@ COPY . /usr/src/app
 
 EXPOSE 3000
 
+RUN apk --update --no-cache add curl
+
+HEALTHCHECK CMD curl --fail https://agenda.orlwambier.com.br || exit 1 
+
+
 CMD [ "yarn", "start" ]
