@@ -52,7 +52,7 @@ const NavBar = () => {
             <img src={LogoMobile} alt="Wambier" />
           </Link>
         ) : (
-          <Link to="#" className="b-brand">
+          <Link to="/" className="b-brand">
             <img src={Logo} alt="Wambier" />
           </Link>
         )}

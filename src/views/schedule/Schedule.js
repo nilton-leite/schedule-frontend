@@ -19,6 +19,7 @@ function Schedule() {
   const model = {
     data: `${new Date().getMonth() + 1}-${new Date().getDate()}-${new Date().getFullYear()}`,
     time: '',
+    timeEnd: '',
     hasHealthInsurance: false,
     hasFirstQuery: false,
     statusId: 2,
@@ -35,7 +36,7 @@ function Schedule() {
     phone: '',
     acceptedMessage: true
   };
-  const [isOpen, setIsOpen] = useState(true);
+  const [isOpen, setIsOpen] = useState(false);
   const [updatingData, setUpdatingData] = useState(false);
   const [newSchedule, setNewSchedule] = useState(model);
   const [scheds, setScheds] = useState([]);
@@ -100,7 +101,7 @@ function Schedule() {
   };
 
   const filterSchedules = async () => {
-    getSchedules();
+    getSchedules(1);
   }
 
   const getSchedules = async (pages) => {
@@ -200,6 +201,7 @@ function Schedule() {
           scheduleId,
           data,
           time,
+          timeEnd,
           statusId,
           hasFirstQuery,
           lastChangedBy,
@@ -221,6 +223,7 @@ function Schedule() {
           patientName,
           data,
           time,
+          timeEnd,
           statusId,
           healthInsuranceId: schedule.healthInsurance && schedule.healthInsurance.healthInsuranceId ? schedule.healthInsurance.healthInsuranceId : null,
           statusName: descriptionStatus,
@@ -309,6 +312,7 @@ function Schedule() {
         {
           data: formatDate(newSchedule.data),
           time: newSchedule.time,
+          timeEnd: newSchedule.timeEnd,
           hasHealthInsurance: newSchedule.healthInsuranceId !== '' && newSchedule.healthInsuranceId !== null ? true : false,
           hasFirstQuery: newSchedule.hasFirstQuery,
           statusId: 2,
@@ -372,6 +376,7 @@ function Schedule() {
     setNewSchedule({
       data: dateInstance,
       time: editItem.time,
+      timeEnd: editItem.timeEnd,
       hasHealthInsurance: editItem.healthInsuranceId !== '' && editItem.healthInsuranceId !== null ? true : false,
       hasFirstQuery: editItem.hasFirstQuery,
       statusId: editItem.statusId,
@@ -558,7 +563,24 @@ function Schedule() {
         abbreviation = 'Exame'
         break;
       default:
-        abbreviation = 'Consulta'
+        abbreviation = 'Agendamento'
+        break;
+    }
+
+    return abbreviation
+  }
+
+  const abbreviationStatus = (status, statusName) => {
+    let abbreviation = '';
+    switch (status) {
+      case 5:
+        abbreviation = 'Erro na confirmação'
+        break;
+      case 6:
+        abbreviation = 'Confirmação env.'
+        break;
+      default:
+        abbreviation = statusName
         break;
     }
 
@@ -577,7 +599,11 @@ function Schedule() {
           <Card>
             <Card.Header>
               <Card.Title as="h5">Nova Consulta</Card.Title>
-              <span className="float-right"></span>
+              <span className="float-right">
+                <Button size="sm" onClick={() => setIsOpen(!isOpen)}>
+                  <i className="feather icon-plus-circle" /> Cadastrar
+                </Button>
+              </span>
             </Card.Header>
             <Collapse in={isOpen}>
               <div id="basic-collapse">
@@ -689,7 +715,7 @@ function Schedule() {
                           </Col>
                           <Col lg={2}>
                             <Form.Group controlId="time">
-                              <Form.Label>Hora</Form.Label>
+                              <Form.Label>Hora Inicial</Form.Label>
 
                               <InputMask
                                 className="form-control"
@@ -698,6 +724,21 @@ function Schedule() {
                                 placeholder="09:00:00"
                                 mask="99:99:99"
                                 value={newSchedule.time}
+                                onChange={handleChange}
+                              />
+                            </Form.Group>
+                          </Col>
+                          <Col lg={2}>
+                            <Form.Group controlId="timeEnd">
+                              <Form.Label>Hora Final</Form.Label>
+
+                              <InputMask
+                                className="form-control"
+                                name="timeEnd"
+                                type="text"
+                                placeholder="09:00:00"
+                                mask="99:99:99"
+                                value={newSchedule.timeEnd}
                                 onChange={handleChange}
                               />
                             </Form.Group>
@@ -950,10 +991,9 @@ function Schedule() {
                 </Col>
               </Row>
               {scheds && scheds.length > 0 ? (
-                <Table responsive hover size="sm">
+                <><Table responsive hover size="sm">
                   <thead>
                     <tr>
-                      {/* <th>#</th> */}
                       <th>Tipo</th>
                       <th>Médico</th>
                       <th>Paciente</th>
@@ -967,23 +1007,20 @@ function Schedule() {
                   <tbody>
                     {scheds.map((item) => (
                       <tr key={item.scheduleId}>
-                        {/* <td>{item.scheduleId}</td> */}
                         <td>{abbreviationType(item.type)}</td>
                         <td>{item.doctorName}</td>
                         <td>{item.patientName}</td>
                         <td>{item.data}</td>
-                        <td>{item.time}</td>
-                        <td>{item.statusName}</td>
+                        <td>{item.time} ~ {item.timeEnd}</td>
+                        <td>{abbreviationStatus(item.statusId, item.statusName)}</td>
                         <td>
                           {' '}
                           <OverlayTrigger
                             placement="top"
-                            overlay={
-                              <Tooltip id={`tooltip-top`}>
-                                Criado por {item.createdBy} em {item.createdAt}. Atualizado pela última vez em {item.updatedAt} por{' '}
-                                {item.lastChangedBy}.{' '}
-                              </Tooltip>
-                            }
+                            overlay={<Tooltip id={`tooltip-top`}>
+                              Criado por {item.createdBy} em {item.createdAt}. Atualizado pela última vez em {item.updatedAt} por{' '}
+                              {item.lastChangedBy}.{' '}
+                            </Tooltip>}
                           >
                             <i className="feather icon-info" />
                           </OverlayTrigger>
@@ -995,7 +1032,7 @@ function Schedule() {
                             className="float-right mr-md"
                             onClick={() => {
                               submitEdit(item);
-                            }}
+                            } }
                           >
                             <i className="feather icon-edit-2" /> Editar
                           </Button>
@@ -1003,8 +1040,10 @@ function Schedule() {
                       </tr>
                     ))}
                   </tbody>
-                  <PaginationComponent page={page} count={count} handlePagination={getSchedules}></PaginationComponent>
                 </Table>
+                <Row style={{marginTop: 30}}>
+                    <PaginationComponent page={page} count={count} handlePagination={getSchedules}></PaginationComponent>
+                </Row></>
               ) : (
                 <center>
                   <span>Nenhuma consulta encontrada.</span>

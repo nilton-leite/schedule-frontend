@@ -65,9 +65,13 @@ const FullEventCalendar = () => {
   const [doctorSelectedOption, setDoctorSelectedOption] = useState(null);
   const [patientSelectedOption, setPatientSelectedOption] = useState([]);
   const [healthInsuranceSelectedOption, setHealthInsuranceSelectedOption] = useState([]);
+  const [healthInsuranceModalSelectedOption, setHealthInsuranceModalSelectedOption] = useState([]);
   const [typeSelectedOption, setTypeSelectedOption] = useState(1);
   const [statusSelectedFormOption, setStatusSelectedFormOption] = useState([]);
   const [scheduleDate, setScheduleDate] = useState(new Date());
+  const [scheduleModalDate, setScheduleModalDate] = useState();
+  const [scheduleModalTime, setScheduleModalTime] = useState();
+  const [scheduleModalTimeEnd, setScheduleModalTimeEnd] = useState();
   const [searchValue, setSearchValue] = useState('');
   const [isRegisterPatient, setIsRegisterPatient] = useState(false);
   const [patient, setPatient] = useState(modelPatient);
@@ -251,7 +255,7 @@ const FullEventCalendar = () => {
           eventTextColor: '#fff',
           extendedProps: {
             typeModal: 'SCHEDULE',
-            data: schedule.data,
+            data: formattedDate,
             hasFirstQuery: schedule.hasFirstQuery,
             obs: schedule.obs == null ? '' : schedule.obs,
             patientId: schedule.patientId,
@@ -261,8 +265,10 @@ const FullEventCalendar = () => {
             status: schedule.status,
             statusId: schedule.statusId,
             time: schedule.time,
+            timeEnd: schedule.timeEnd,
             doctor: doctor.name,
             healthInsurance: schedule.healthInsurance !== null ? schedule.healthInsurance.name : null,
+            healthInsuranceId: schedule.healthInsurance !== null ? schedule.healthInsurance.healthInsuranceId : null,
             createdAt: schedule.createdAt,
             updatedAt: schedule.updatedAt,
             createdBy: schedule.createdBy,
@@ -361,65 +367,76 @@ const FullEventCalendar = () => {
     }));
   };
 
+  const handleChangeRuleModalTime = (e) => {
+    let timeEnd = '';
+    if (scheduleModalTime > scheduleModalTimeEnd) {
+      if (doctorSelectedOption) {
+        const doctorSelected = doctorsAux.find((item) => item.doctorId === doctorSelectedOption.value);
+        timeEnd = addAllMinutesToTime(scheduleModalTime, doctorSelected.timePerQuery);
+      } else {
+        timeEnd = addAllMinutesToTime(scheduleModalTime, 15); // 15 minutes default
+      }
+      setScheduleModalTimeEnd(timeEnd);
+    }
+  }
+
+  const handleChangeModalTime = (e) => {
+    setScheduleModalTime(e.target.value);
+  }
+  const handleChangeModalTimeEnd = (e) => {
+    setScheduleModalTimeEnd(e.target.value);
+  }
   const selectedSchedule = async (args) => {
+    const [year, month, day] = args.event.extendedProps.data.split('-');
+    const dateInstance = new Date(year, month - 1, day);
     setStatusSelectedOption(statusSelection.find((option) => option.value === args.event.extendedProps.statusId));
     setModalData(args.event.extendedProps);
+    setScheduleModalDate(dateInstance);
+    setScheduleModalTime(args.event.extendedProps.time);
+    setScheduleModalTimeEnd(args.event.extendedProps.timeEnd);
+    setHealthInsuranceModalSelectedOption(healthInsurances.find((option) => option.value === args.event.extendedProps.healthInsuranceId));
     setIsModalOpen(true);
   };
 
   const submitUpdate = async (updateId, updatedData) => {
-    const updateForm = { statusId: updatedData.statusId, obs: updatedData.obs };
-    await axios
-      .patch(`${ENDPOINT.api}schedules/${updateId}`, updateForm, ENDPOINT.config)
-      .then((response) => {
-        if (response.data.statusCode === 200) {
-          setIsModalOpen(false);
-          setModalData([]);
-          getSchedules();
-          getDoctorSchedules(`schedules/only`);
-          
-        } else {
-          if (response.data.statusCode === 400) {
-            sweetAlertHandler({ title: 'Poxa...', text: response.data.response, icon: 'error', showCloseButton: true });
-          } else {
-            sweetAlertHandler({ title: 'Poxa...', text: 'Não foi possivel alterar.', icon: 'error', showCloseButton: true });
-          }
-        }
-      })
-      .catch((err) => {
-        sweetAlertHandler({ title: 'Poxa...', text: 'Não foi possivel alterar.', icon: 'error', showCloseButton: true });
-        console.error('Não foi possível alterar a Consulta.' + err);
-      });
-    // if (updatedData.obs !== '') {
-    //   console.log('HELLO')
-    //   await axios
-    //     .post(`${ENDPOINT.api}queries`, { scheduleId: updateId, obs: updatedData.obs }, ENDPOINT.config)
-    //     .then((response) => {
-    //       if (response.data.statusCode === 200) {
-    //         sweetAlertHandler({
-    //           title: 'Tudo certo!',
-    //           text: 'Consulta alterada com sucesso.',
-    //           icon: 'success',
-    //           showCloseButton: true
-
-    //         })
-    //         setIsModalOpen(false);
-    //         setModalData([]);
-    //         getSchedules();
-    //         getDoctorSchedules(`schedules/only`);
-    //       } else {
-    //         if (response.data.statusCode === 400) {
-    //           sweetAlertHandler({ title: 'Poxa...', text: response.data.response, icon: 'error', showCloseButton: true });
-    //         } else {
-    //           sweetAlertHandler({ title: 'Poxa...', text: 'Não foi possivel alterar.', icon: 'error', showCloseButton: true });
-    //         }
-    //       }
-    //     })
-    //     .catch((err) => {
-    //       sweetAlertHandler({ title: 'Poxa...', text: 'Não foi possivel alterar.', icon: 'error', showCloseButton: true });
-    //       console.error('Não foi possível alterar a Consulta.' + err);
-    //     });
-    // }
+    if (updatedData.data != null && updatedData.data !== '' && 
+        updatedData.time != null && updatedData.time !== '' && 
+        updatedData.timeEnd != null && updatedData.timeEnd !== '' && 
+        updatedData.statusId != null && updatedData.statusId !== '' && 
+        updatedData.healthInsuranceId != null && updatedData.healthInsuranceId !== '' && updatedData.healthInsuranceId !== null) {
+          const updateForm = { 
+            statusId: updatedData.statusId.value, 
+            obs: updatedData.obs, 
+            hasHealthInsurance: updatedData.healthInsuranceId.value !== '' && updatedData.healthInsuranceId.value !== null ? true : false, 
+            healthInsuranceId: updatedData.healthInsuranceId.value, 
+            data: updatedData.data, 
+            time: updatedData.time, 
+            timeEnd: updatedData.timeEnd 
+          };
+          await axios
+            .patch(`${ENDPOINT.api}schedules/${updateId}`, updateForm, ENDPOINT.config)
+            .then((response) => {
+              if (response.data.statusCode === 200) {
+                setIsModalOpen(false);
+                setModalData([]);
+                getSchedules();
+                getDoctorSchedules(`schedules/only`);
+                
+              } else {
+                if (response.data.statusCode === 400) {
+                  sweetAlertHandler({ title: 'Poxa...', text: response.data.response, icon: 'error', showCloseButton: true });
+                } else {
+                  sweetAlertHandler({ title: 'Poxa...', text: 'Não foi possivel alterar.', icon: 'error', showCloseButton: true });
+                }
+              }
+            })
+            .catch((err) => {
+              sweetAlertHandler({ title: 'Poxa...', text: 'Não foi possivel alterar.', icon: 'error', showCloseButton: true });
+              console.error('Não foi possível alterar a Consulta.' + err);
+            });
+    } else {
+      sweetAlertHandler({ title: 'Poxa...', text: 'Preencha todos os campos para continuar.', icon: 'error', showCloseButton: true });
+    }
   };
 
   const newSchedule = (args) => {
@@ -636,6 +653,14 @@ const FullEventCalendar = () => {
     }));
   };
 
+  const handleHealthInsuranceModalSelectChange = async (selected) => {
+    setHealthInsuranceModalSelectedOption(selected);
+    setModalData((prevData) => ({
+      ...prevData,
+      healthInsuranceId: selected ? selected.value : ''
+    }));
+  };
+
   const handleDoctorSelectChange = async (selected) => {
     setDoctorSelectedOption(selected);
     setNewFormSchedule((prevData) => ({
@@ -655,6 +680,14 @@ const FullEventCalendar = () => {
   const handleDateSelectChange = (date) => {
     setScheduleDate(date);
     setNewFormSchedule((prevData) => ({
+      ...prevData,
+      data: `${date.getMonth() + 1}-${date.getDate()}-${date.getFullYear()}`
+    }));
+  };
+
+  const handleModalDateSelectChange = (date) => {
+    setScheduleModalDate(date);
+    setModalData((prevData) => ({
       ...prevData,
       data: `${date.getMonth() + 1}-${date.getDate()}-${date.getFullYear()}`
     }));
@@ -903,7 +936,7 @@ const FullEventCalendar = () => {
       </Row>
       <Row>
         <Col>
-          <CardMain title="Agendas" isOption>
+          <CardMain title="Agendas" isOption style={{width: 800}}>
             <Row>
               <Col sm={{ span: 7, offset: 5 }}>
                 <Col sm={4}>
@@ -993,16 +1026,6 @@ const FullEventCalendar = () => {
                     <h6>Dados da Consulta</h6>
                     <hr />
                     <Col lg={6} className="p-2">
-                      <span className="modal-title">Data</span>
-                      <br />
-                      {modalData.data}
-                    </Col>
-                    <Col lg={6} className="p-2">
-                      <span className="modal-title">Hora</span>
-                      <br />
-                      {modalData.time}
-                    </Col>
-                    <Col lg={6} className="p-2">
                       <span className="modal-title">Médico</span>
                       <br />
                       {modalData.doctor}
@@ -1021,11 +1044,6 @@ const FullEventCalendar = () => {
                       <span className="modal-title">Observações</span>
                       <br />
                       {modalData.obs}
-                    </Col>
-                    <Col lg={6} className="p-2">
-                      <span className="modal-title">Plano de Saúde</span>
-                      <br />
-                      {modalData.healthInsurance ?? ' - '}
                     </Col>
                     <Col lg={6} className="p-2">
                       <span className="modal-title">Criado em</span>
@@ -1049,40 +1067,106 @@ const FullEventCalendar = () => {
                     </Col>
                   </Col>
 
-                  <Col lg={7} className="m-t-15">
+                  <Col lg={8} className="m-t-15">
                     <h6>Observações da Consulta</h6>
                     <hr />
-                    <Col lg={12}>
-                      <Form.Group controlId="patient">
-                        <Form.Label>Observação</Form.Label>
+                    <Row>
+                      <Col lg={4}>
+                        <Form.Group controlId="modalDate">
+                          <Form.Label>Data</Form.Label>
 
-                        <Form.Control
-                          name="obs"
-                          as="textarea"
-                          rows="12"
-                          value={modalData.obs}
-                          onChange={handleChange}
-                          placeholder="Digite aqui as observações da consulta."
-                        />
-                      </Form.Group>
-                    </Col>
+                          <DatePicker
+                            name="modalData"
+                            locale="pt-BR"
+                            dateFormat="dd/MM/yyyy"
+                            selected={scheduleModalDate}
+                            minDate={new Date()}
+                            onChange={handleModalDateSelectChange}
+                            className="form-control"
+                          />
+                        </Form.Group>
+                      </Col>
+                      <Col lg={4}>
+                        <Form.Group controlId="modalTime">
+                          <Form.Label>Hora Inicial</Form.Label>
+                          <InputMask
+                            className="form-control"
+                            name="modalTime"
+                            type="text"
+                            placeholder="09:00:00"
+                            mask="99:99:99"
+                            value={scheduleModalTime}
+                            onChange={handleChangeModalTime}
+                            onBlur={handleChangeRuleModalTime}
+                          />
+                        </Form.Group>
+                      </Col>
+                      <Col lg={4}>
+                        <Form.Group controlId="modaltimeEnd">
+                          <Form.Label>Hora Final</Form.Label>
 
-                    <Col lg={12}>
-                      <Form.Group controlId="statusSelection">
-                        <Form.Label>Situação</Form.Label>
+                          <InputMask
+                            className="form-control"
+                            name="modaltimeEnd"
+                            type="text"
+                            placeholder="09:00:00"
+                            mask="99:99:99"
+                            value={scheduleModalTimeEnd}
+                            onChange={handleChangeModalTimeEnd}
+                          />
+                        </Form.Group>
+                      </Col>
+                    </Row>
+                    <Row>
+                      <Col lg={12}>
+                        <Form.Group controlId="obsModal">
+                          <Form.Label>Observação</Form.Label>
 
-                        <Select
-                          name="status"
-                          options={statusSelection}
-                          className="basic-multi-select"
-                          classNamePrefix="select"
-                          placeholder="Selecione"
-                          value={statusSelectedOption}
-                          onChange={handleStatusSelectChange}
-                          isSearchable
-                        />
-                      </Form.Group>
-                    </Col>
+                          <Form.Control
+                            name="obsModal"
+                            as="textarea"
+                            rows="12"
+                            value={modalData.obs}
+                            onChange={handleChange}
+                            placeholder="Digite aqui as observações da consulta."
+                          />
+                        </Form.Group>
+                      </Col>
+                    </Row>
+                    <Row>
+                    <Col lg={6}>
+                        <Form.Group controlId="modalInsurances">
+                          <Form.Label>Plano de Saúde</Form.Label>
+                          <Select
+                            name="modalInsurances"
+                            options={healthInsurances}
+                            value={healthInsuranceModalSelectedOption}
+                            className="basic-multi-select"
+                            classNamePrefix="select"
+                            placeholder="Selecione"
+                            onChange={handleHealthInsuranceModalSelectChange}
+                            isSearchable
+                            isClearable
+                          />
+                        </Form.Group>
+                      </Col>
+                      <Col lg={6}>
+                        <Form.Group controlId="statusSelection">
+                          <Form.Label>Situação</Form.Label>
+
+                          <Select
+                            name="status"
+                            options={statusSelection}
+                            className="basic-multi-select"
+                            classNamePrefix="select"
+                            placeholder="Selecione"
+                            value={statusSelectedOption}
+                            onChange={handleStatusSelectChange}
+                            isSearchable
+                          />
+                        </Form.Group>
+                      </Col>
+                    </Row>
                   </Col>
                 </Row>
               )}
@@ -1162,7 +1246,7 @@ const FullEventCalendar = () => {
                   <Button
                     variant="primary"
                     disabled={isDisabled}
-                    onClick={() => submitUpdate(modalData.scheduleId, { obs: modalData.obs, statusId: modalData.statusId })}
+                    onClick={() => submitUpdate(modalData.scheduleId, { obs: modalData.obs, statusId: statusSelectedOption, healthInsuranceId: healthInsuranceModalSelectedOption, data: scheduleModalDate, time: scheduleModalTime, timeEnd: scheduleModalTimeEnd })}
                   >
                     {isDisabled ? 'Salvando...' : 'Salvar Alterações'} 
                   </Button>

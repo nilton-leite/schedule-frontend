@@ -71,3 +71,8 @@ File: style.css
 @import 'partials/layouts/rtl';
 
 @import 'partials/third-party/third-party';
+
+
+.container {
+  max-width: 1900px !important;
+}
