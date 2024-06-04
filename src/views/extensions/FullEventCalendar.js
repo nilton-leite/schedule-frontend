@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useContext } from 'react';
-import { Row, Col, Button, Modal, Form, Table, Card, Badge } from 'react-bootstrap';
+import { Row, Col, Button, Modal, Form, Table, Card, Badge, Tooltip } from 'react-bootstrap';
 import InputMask from 'react-input-mask';
 import FullCalendar from '@fullcalendar/react';
 import dayGridPlugin from '@fullcalendar/daygrid';
@@ -19,6 +19,8 @@ import axios from 'axios';
 import isValidCPF from '../../services/cpfvalidator';
 import { LoadingContext } from '../../contexts/LoadingContext';
 import Loader from '../../components/Loader/Loader';
+import tippy from 'tippy.js';
+import 'tippy.js/dist/tippy.css';
 
 const FullEventCalendar = () => {
   const [doctorSchedules, setDoctorSchedules] = useState([]);
@@ -78,6 +80,7 @@ const FullEventCalendar = () => {
   const [exist, setExist] = useState(false);
   const [healthInsurances, setHealthInsurances] = useState([]);
   const [isDisabled, setIsDisabled] = useState(false);
+  const [canChange, setCanChange] = useState(true);
 
   useEffect(() => {
     getStatus();
@@ -254,6 +257,9 @@ const FullEventCalendar = () => {
           backgroundColor: setColour(schedule.statusId),
           eventTextColor: '#fff',
           extendedProps: {
+            title: `[${type}] (${doctor.name}) ${schedule.patientName} | ${setStatusIcon(schedule.statusId)} ${
+              schedule.healthInsurance !== null ? `{${schedule.healthInsurance.name}}` : ''
+            }`,
             typeModal: 'SCHEDULE',
             data: formattedDate,
             hasFirstQuery: schedule.hasFirstQuery,
@@ -295,6 +301,7 @@ const FullEventCalendar = () => {
             backgroundColor: '#9C9C9C',
             eventTextColor: '#CD9B9B',
             extendedProps: {
+              title: `AUSENTE: (${doctor.name}) - ${temporaryabs.temporary.reasonTemporaryAbsence.description}`,
               typeModal: 'TEMPORARY',
               key: temporaryabs.temporary.scheduleId,
               initDate: temporaryabs.temporary.initDate,
@@ -387,14 +394,25 @@ const FullEventCalendar = () => {
     setScheduleModalTimeEnd(e.target.value);
   }
   const selectedSchedule = async (args) => {
+    setCanChange(true);
+    
+    const today = new Date().toLocaleDateString('pt-BR');
+    const [dayToday, monthToday, yearToday] = today.split('/');
+    const dateToday = new Date(yearToday, monthToday - 1, dayToday);
+    
     const [year, month, day] = args.event.extendedProps.data.split('-');
     const dateInstance = new Date(year, month - 1, day);
+    
     setStatusSelectedOption(statusSelection.find((option) => option.value === args.event.extendedProps.statusId));
     setModalData(args.event.extendedProps);
     setScheduleModalDate(dateInstance);
     setScheduleModalTime(args.event.extendedProps.time);
     setScheduleModalTimeEnd(args.event.extendedProps.timeEnd);
     setHealthInsuranceModalSelectedOption(healthInsurances.find((option) => option.value === args.event.extendedProps.healthInsuranceId));
+    
+    if (dateInstance < dateToday) {
+      setCanChange(false);
+    }
     setIsModalOpen(true);
   };
 
@@ -985,6 +1003,14 @@ const FullEventCalendar = () => {
               events={doctorSchedules}
               plugins={[dayGridPlugin, interaction, timeGrid, bootstrapPlugin]}
               themeSystem={'bootstrap'}
+              eventMouseEnter={function (args) {
+                tippy(args.el, {
+                  content: args.event.extendedProps.title,
+                  theme: 'light-border',
+                });
+                
+                // console.log(args.event.extendedProps.title)
+              }}
               eventClick={function (args) {
                 selectedSchedule(args);
               }}
@@ -1242,7 +1268,7 @@ const FullEventCalendar = () => {
                 <Button variant="secondary" onClick={() => setIsModalOpen(false)}>
                   Fechar
                 </Button>
-                {modalData.typeModal === 'SCHEDULE' && (
+                {modalData.typeModal === 'SCHEDULE' && canChange && (
                   <Button
                     variant="primary"
                     disabled={isDisabled}
