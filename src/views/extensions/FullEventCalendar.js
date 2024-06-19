@@ -241,6 +241,9 @@ const FullEventCalendar = () => {
           case 'Exame Normal':
             type = 'Exame'
             break;
+          case 'Cirurgia':
+            type = 'Cirurgia'
+            break;
           default:
             type = 'Consulta'
             break;
