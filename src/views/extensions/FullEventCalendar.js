@@ -285,7 +285,7 @@ const FullEventCalendar = () => {
           }
         });
       });
-
+      let count = 1;
       doctor.temporaryAbsence.forEach((temporaryabs) => {
         if (temporaryabs.temporary) {
 
@@ -295,7 +295,7 @@ const FullEventCalendar = () => {
           const combinedEnd = `${yearA}-${monthA}-${dayA}T${temporaryabs.temporary.endTime}`;
           
           newData.push({
-            id: temporaryabs.temporary.scheduleId,
+            id: count,
             title: `AUSENTE: (${doctor.name}) - ${temporaryabs.temporary.reasonTemporaryAbsence.description}`,
             description: 'io',
             start: combinedStart,
@@ -306,7 +306,7 @@ const FullEventCalendar = () => {
             extendedProps: {
               title: `AUSENTE: (${doctor.name}) - ${temporaryabs.temporary.reasonTemporaryAbsence.description}`,
               typeModal: 'TEMPORARY',
-              key: temporaryabs.temporary.scheduleId,
+              key: count,
               initDate: temporaryabs.temporary.initDate,
               initTime: temporaryabs.temporary.initTime,
               endDate: temporaryabs.temporary.endDate,
@@ -320,9 +320,9 @@ const FullEventCalendar = () => {
             }
           });
         }
+        count++;
       });
     });
-
     return newData;
   };
 
