@@ -125,7 +125,7 @@ function Doctors() {
 
   const getTA = async () => {
     await axios
-      .get(`${ENDPOINT.api}temporaryAbsence`, ENDPOINT.config)
+      .get(`${ENDPOINT.api}temporaryAbsence?doctorId=${doctor.doctorId}`, ENDPOINT.config)
       .then((response) => {
         setTemporaryAbsences(response.data.response);
         console.log(response.data.response);

@@ -295,7 +295,7 @@ const FullEventCalendar = () => {
           const combinedEnd = `${yearA}-${monthA}-${dayA}T${temporaryabs.temporary.endTime}`;
           
           newData.push({
-            id: count,
+            id: doctor.doctorId + '-' + count,
             title: `AUSENTE: (${doctor.name}) - ${temporaryabs.temporary.reasonTemporaryAbsence.description}`,
             description: 'io',
             start: combinedStart,
