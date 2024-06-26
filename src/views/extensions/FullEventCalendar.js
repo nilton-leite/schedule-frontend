@@ -405,24 +405,27 @@ const FullEventCalendar = () => {
     const today = new Date().toLocaleDateString('pt-BR');
     const [dayToday, monthToday, yearToday] = today.split('/');
     const dateToday = new Date(yearToday, monthToday - 1, dayToday);
-    
-    const [year, month, day] = args.event.extendedProps.data.split('-');
-    const dateInstance = new Date(year, month - 1, day);
-    
-    setStatusSelectedOption(statusSelection.find((option) => option.value === args.event.extendedProps.statusId));
     setModalData(args.event.extendedProps);
-    setScheduleModalDate(dateInstance);
-    setScheduleModalTime(args.event.extendedProps.time);
-    setScheduleModalTimeEnd(args.event.extendedProps.timeEnd);
-    setHealthInsuranceModalSelectedOption(healthInsurances.find((option) => option.value === args.event.extendedProps.healthInsuranceId));
-    
-    if (dateInstance < dateToday) {
-      setCanChange(false);
+    if (args.event.extendedProps.typeModal !== 'TEMPORARY') {
+
+      const [year, month, day] = args.event.extendedProps.data.split('-');
+      const dateInstance = new Date(year, month - 1, day);
+      
+      setStatusSelectedOption(statusSelection.find((option) => option.value === args.event.extendedProps.statusId));
+      setScheduleModalDate(dateInstance);
+      setScheduleModalTime(args.event.extendedProps.time);
+      setScheduleModalTimeEnd(args.event.extendedProps.timeEnd);
+      setHealthInsuranceModalSelectedOption(healthInsurances.find((option) => option.value === args.event.extendedProps.healthInsuranceId));
+      if (dateInstance < dateToday) {
+        setCanChange(false);
+      }
     }
+    
     setIsModalOpen(true);
   };
 
   const submitUpdate = async (updateId, updatedData) => {
+    setIsDisabled(true);
     if (updatedData.data != null && updatedData.data !== '' && 
         updatedData.time != null && updatedData.time !== '' && 
         updatedData.timeEnd != null && updatedData.timeEnd !== '' && 
@@ -445,21 +448,24 @@ const FullEventCalendar = () => {
                 setModalData([]);
                 getSchedules();
                 getDoctorSchedules(`schedules/only`);
-                
+                setIsDisabled(false);
               } else {
                 if (response.data.statusCode === 400) {
                   sweetAlertHandler({ title: 'Poxa...', text: response.data.response, icon: 'error', showCloseButton: true });
                 } else {
                   sweetAlertHandler({ title: 'Poxa...', text: 'Não foi possivel alterar.', icon: 'error', showCloseButton: true });
                 }
+                setIsDisabled(false);
               }
             })
             .catch((err) => {
               sweetAlertHandler({ title: 'Poxa...', text: 'Não foi possivel alterar.', icon: 'error', showCloseButton: true });
               console.error('Não foi possível alterar a Consulta.' + err);
+              setIsDisabled(false);
             });
     } else {
       sweetAlertHandler({ title: 'Poxa...', text: 'Preencha todos os campos para continuar.', icon: 'error', showCloseButton: true });
+      setIsDisabled(false);
     }
   };
 
