@@ -16,9 +16,7 @@
     "axios": "^0.26.0",
     "axios-mock-adapter": "^1.20.0",
     "bootstrap": "^4.6.0",
-    "buffer": "^6.0.3",
     "chroma-js": "^2.4.2",
-    "crypto-browserify": "^3.12.1",
     "deni-react-treeview": "^1.1.11",
     "formik": "^2.2.9",
     "history": "^5.3.0",
@@ -36,7 +34,6 @@
     "react": "^17.0.1",
     "react-animated-tree": "^1.0.10",
     "react-app-polyfill": "^3.0.0",
-    "react-app-rewired": "^2.2.1",
     "react-bootstrap": "^1.5.2",
     "react-bootstrap4-form-validation": "^1.0.10",
     "react-color": "^2.19.3",
@@ -54,7 +51,7 @@
     "react-rating": "^2.0.5",
     "react-redux": "^7.2.6",
     "react-router-dom": "^5.2.0",
-    "react-scripts": "^5.0.1",
+    "react-scripts": "^4.0.3",
     "react-select": "^5.2.2",
     "react-slick": "^0.28.1",
     "react-table": "^7.7.0",
@@ -71,15 +68,14 @@
     "sweetalert2-react-content": "^4.2.0",
     "tippy.js": "^6.3.7",
     "util": "^0.12.5",
-    "vm-browserify": "^1.1.2",
     "web-vitals": "^1.1.0",
     "yup": "^0.32.9"
   },
   "scripts": {
-    "start": "react-app-rewired start",
-    "build": "react-app-rewired build",
-    "test": "react-app-rewired test",
-    "eject": "react-app-rewired eject"
+    "start": "react-scripts start",
+    "build": "react-scripts build",
+    "test": "react-scripts test",
+    "eject": "react-scripts eject"
   },
   "browserslist": {
     "production": [
