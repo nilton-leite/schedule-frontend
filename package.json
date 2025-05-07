@@ -62,6 +62,7 @@
     "redux-form": "^8.3.8",
     "rodal": "^1.8.1",
     "sass": "^1.32.8",
+    "stream-browserify": "^3.0.0",
     "styled-components": "^5.3.3",
     "sweetalert2": "^11.4.4",
     "sweetalert2-react-content": "^4.2.0",
