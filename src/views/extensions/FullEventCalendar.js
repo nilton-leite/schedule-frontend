@@ -21,7 +21,7 @@ import { LoadingContext } from '../../contexts/LoadingContext';
 import Loader from '../../components/Loader/Loader';
 import tippy from 'tippy.js';
 import 'tippy.js/dist/tippy.css';
-import schedulesPDF from '../components/schedulesTodayPDF';
+// import schedulesPDF from '../components/schedulesTodayPDF';
 
 const FullEventCalendar = () => {
   const [doctorSchedules, setDoctorSchedules] = useState([]);
@@ -1658,9 +1658,9 @@ const FullEventCalendar = () => {
             <Card.Header>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <Card.Title as="h5">Nossas Consultas de Hoje</Card.Title>
-              <Button className="primary mt6 pull-right" title='Baixar agendamentos do dia' name="buttonPdf" onClick={() => {schedulesPDF(schedsToday)}}>
+               {/* <Button className="primary mt6 pull-right" title='Baixar agendamentos do dia' name="buttonPdf" onClick={() => {schedulesPDF(schedsToday)}}>
                   <i className="feather icon-file" />
-              </Button>
+              </Button> */}
             </div>
             </Card.Header>
             <Card.Body>

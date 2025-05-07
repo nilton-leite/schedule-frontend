@@ -1,5 +1,5 @@
 # Initial Stage
-FROM node:18-alpine as builder
+FROM node:16-alpine as builder
 
 ARG NODE_ENV=production
 ENV NODE_ENV=${NODE_ENV}
