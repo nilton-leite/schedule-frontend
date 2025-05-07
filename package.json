@@ -16,6 +16,7 @@
     "axios": "^0.26.0",
     "axios-mock-adapter": "^1.20.0",
     "bootstrap": "^4.6.0",
+    "caniuse-lite": "^1.0.30001632",
     "chroma-js": "^2.4.2",
     "deni-react-treeview": "^1.1.11",
     "formik": "^2.2.9",
@@ -87,5 +88,8 @@
       "last 1 firefox version",
       "last 1 safari version"
     ]
+  },
+  "overrides": {
+    "caniuse-lite": "1.0.30001632"
   }
 }
