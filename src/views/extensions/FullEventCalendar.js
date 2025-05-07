@@ -21,6 +21,7 @@ import { LoadingContext } from '../../contexts/LoadingContext';
 import Loader from '../../components/Loader/Loader';
 import tippy from 'tippy.js';
 import 'tippy.js/dist/tippy.css';
+import schedulesPDF from '../components/schedulesTodayPDF';
 
 const FullEventCalendar = () => {
   const [doctorSchedules, setDoctorSchedules] = useState([]);
@@ -81,6 +82,8 @@ const FullEventCalendar = () => {
   const [healthInsurances, setHealthInsurances] = useState([]);
   const [isDisabled, setIsDisabled] = useState(false);
   const [canChange, setCanChange] = useState(true);
+  const [load, setLoad] = useState(false);
+  const [showPDF, setShowPDF] = useState(false);
 
   useEffect(() => {
     getStatus();
@@ -92,6 +95,10 @@ const FullEventCalendar = () => {
     getDoctorSchedules(`schedules/only`);
     getSchedules();
   }, []);
+
+  const handleShowPDF = () => {
+    setShowPDF(true); // Define o estado para exibir o PDF
+  };
 
   const sweetAlertHandler = (alert) => {
     const MySwal = withReactContent(Swal);
@@ -198,15 +205,16 @@ const FullEventCalendar = () => {
       setDoctorSelectedOption(null);
       const foundObject = doctors.find((item) => item.label === window.localStorage.getItem('name'));
       if (foundObject) {
-        getDoctorSchedules(`schedules/only?doctorId=${foundObject.value}`);
+        id = foundObject.value;
+        getDoctorSchedules(`schedules/only?doctorId=${foundObject.value}`, id);
       } else {
         sweetAlertHandler({ title: 'Poxa...', text: 'Sem agendamentos para este usuário.', icon: 'warning', showCloseButton: true });
       }
     } else if (type === '2') {
       setDoctorSelectedOption(null);
-      getDoctorSchedules(`schedules/only`);
+      getDoctorSchedules(`schedules/only`, null);
     } else {
-      getDoctorSchedules(`schedules/only?doctorId=${id}`);
+      getDoctorSchedules(`schedules/only?doctorId=${id}`, id);
     }
   };
 
@@ -345,14 +353,57 @@ const FullEventCalendar = () => {
       });
   };
 
-  const getDoctorSchedules = async (fullendpoint) => {
+  const getDoctorSchedules = async (fullendpoint, id) => {
+    setLoad(true);
     await axios
       .get(`${ENDPOINT.api}${fullendpoint}`, ENDPOINT.config)
-      .then((response) => {
+      .then(async (response) => {
         setDoctorSchedules(assembleFullSchedule(response.data.response));
+        
+        if (id)  {
+          const newdata = []
+          await Promise.all(
+            response.data.response.map(async (doctor) => {
+              const { doctorId, name, schedules } = doctor;
+              await Promise.all(
+                schedules.map(async (schedule) => {
+                  const {
+                    scheduleId,
+                    data,
+                    time,
+                    statusId,
+                    status,
+                    hasFirstQuery,
+                    type,
+                    patientId,
+                    patientName 
+                  } = schedule;
+      
+                  newdata.push({
+                    scheduleId,
+                    doctorId,
+                    name,
+                    patientId,
+                    patientName,
+                    data,
+                    time,
+                    statusId,
+                    statusName: status,
+                    type,
+                    hasFirstQuery: hasFirstQuery
+                  });
+                })
+              );
+            })
+          );
+          const orderednd = newdata.sort((a, b) => b.scheduleId - a.scheduleId);
+          await getTodaySchedules(orderednd);
+          setLoad(false);
+        }
       })
       .catch((err) => {
         console.error('Não foi possível puxar os Médicos.' + err);
+        setLoad(false);
       });
   };
 
@@ -518,17 +569,6 @@ const FullEventCalendar = () => {
     right: 'timeGridDay,timeGridWeek,dayGridMonth'
   };
 
-  const CPFMask = (value) => {
-    const cleanedValue = value.replace(/\D/g, '');
-
-    let formattedValue = cleanedValue.slice(0, 3);
-    if (cleanedValue.length > 3) formattedValue += `.${cleanedValue.slice(3, 6)}`;
-    if (cleanedValue.length > 6) formattedValue += `.${cleanedValue.slice(6, 9)}`;
-    if (cleanedValue.length > 9) formattedValue += `-${cleanedValue.slice(9, 11)}`;
-
-    return formattedValue;
-  };
-
   function formatDate(inputDate) {
     const parts = inputDate.split('-'); // Split the input date string into parts
     const year = parts[2];
@@ -545,6 +585,7 @@ const FullEventCalendar = () => {
   };
 
   const getSchedules = async () => {
+    setLoad(true);
     await axios
       .get(`${ENDPOINT.api}schedules`, ENDPOINT.config)
       .then(async (response) => {
@@ -553,6 +594,7 @@ const FullEventCalendar = () => {
 
         setScheds(orderednd);
         await getTodaySchedules(orderednd);
+        setLoad(false);
       })
       .catch((err) => {
         console.error('Não foi possível puxar as consultas.' + err);
@@ -950,17 +992,16 @@ const FullEventCalendar = () => {
     setDoctorSelectedOption('');
     setScheduleDate('');
     setHealthInsuranceSelectedOption('');
-    
-    // setSchedsToday([]);
   };
+
+  if (load) {
+    return (
+        <Loader />
+    )
+  }
 
   return (
     <React.Fragment>
-      {loading && (
-        <div>
-          <Loader />
-        </div>
-      )}
       <Row>
         <Col sm={12}></Col>
       </Row>
@@ -1022,8 +1063,6 @@ const FullEventCalendar = () => {
                   content: args.event.extendedProps.title,
                   theme: 'light-border',
                 });
-                
-                // console.log(args.event.extendedProps.title)
               }}
               eventClick={function (args) {
                 selectedSchedule(args);
@@ -1617,7 +1656,12 @@ const FullEventCalendar = () => {
         <Col>
           <Card>
             <Card.Header>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <Card.Title as="h5">Nossas Consultas de Hoje</Card.Title>
+              <Button className="primary mt6 pull-right" title='Baixar agendamentos do dia' name="buttonPdf" onClick={() => {schedulesPDF(schedsToday)}}>
+                  <i className="feather icon-file" />
+              </Button>
+            </div>
             </Card.Header>
             <Card.Body>
               <Row className="m-b-20">

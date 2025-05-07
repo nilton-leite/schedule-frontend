@@ -13,6 +13,8 @@ import axios from 'axios';
 import { LoadingContext } from '../../contexts/LoadingContext';
 import Loader from '../../components/Loader/Loader';
 import PaginationComponent from '../components/Pagination';
+import AsyncSelect from 'react-select/async';
+
 
 function Schedule() {
   registerLocale('pt-BR', ptBR);
@@ -63,12 +65,12 @@ function Schedule() {
   const [healthInsuranceSelectedOption, setHealthInsuranceSelectedOption] = useState([]);
   const [page, setPage] = useState(1);
   const [count, setCount] = useState(0);
+  const [load, setLoad] = useState(false);
 
   const { loading } = useContext(LoadingContext);
 
   useEffect(() => {
     getStatus();
-    getPatients();
     getDoctors();
     getScheduleTypes();
     getSchedules();
@@ -85,6 +87,26 @@ function Schedule() {
     });
   };
 
+  const loadOptions = async (inputValue) => { 
+    if (!inputValue || inputValue.length < 3) return [];
+  
+    try {
+      const response = await axios.get(`${ENDPOINT.api}patients/search?search=${inputValue}`, ENDPOINT.config);
+      const options = response.data.response.map((patient) => ({
+        value: patient.patientId,
+        label: `(${patient.phone}) ${patient.name} `
+      }));
+      return options;
+    } catch (error) {
+      console.error('Erro ao buscar pacientes:', error);
+      return [];
+    }
+  }; 
+  
+  const handleChangePatient = (selectedOption) => {
+    setFilterPatientSelectedOption(selectedOption);
+  };
+
   function formatDate(inputDate) {
     const parts = inputDate.split('-');
     const year = parts[2];
@@ -94,12 +116,6 @@ function Schedule() {
     return `${year}-${month}-${day}`;
   }
 
-  const getTodaySchedules = async (schedulesfortoday) => {
-    const today = new Date().toISOString().split('T')[0].split('-').reverse().join('/');
-    const filteredItems = schedulesfortoday.filter((item) => item.data == today);
-    setSchedsToday(filteredItems);
-  };
-
   const filterSchedules = async () => {
     getSchedules(1);
   }
@@ -107,6 +123,7 @@ function Schedule() {
   const getSchedules = async (pages) => {
     if (!pages) pages = page;
     setPage(pages);
+    setLoad(true);
 
     let query = `limit=10&page=${pages}`;
     if (filterPatientSelectedOption && filterPatientSelectedOption.value) query += `&patientId=${filterPatientSelectedOption.value}`;
@@ -122,9 +139,11 @@ function Schedule() {
         const orderednd = newdata.sort((a, b) => b.scheduleId - a.scheduleId);
 
         setScheds(orderednd);
+        setLoad(false);
       })
       .catch((err) => {
         console.error('Não foi possível puxar as consultas.' + err);
+        setLoad(false);
       });
   };
 
@@ -248,9 +267,6 @@ function Schedule() {
     }));
   };
 
-  const handleFilterPatientSelectChange = async (selected) => {
-    setFilterPatientSelectedOption(selected);
-  };
 
   const handleDoctorSelectChange = async (selected) => {
     setDoctorSelectedOption(selected);
@@ -353,7 +369,6 @@ function Schedule() {
   };
 
   const submitEdit = (editItem) => {
-    console.log('editItem', editItem);
     setIsOpen(true);
     setUpdatingData(true);
 
@@ -372,7 +387,7 @@ function Schedule() {
     const [day, month, year] = date.split('/');
     const dateInstance = new Date(year, month - 1, day);
     setScheduleDate(dateInstance);
-    console.log('healthInsuranceSelectedOption', healthInsuranceSelectedOption);
+    
     setNewSchedule({
       data: dateInstance,
       time: editItem.time,
@@ -498,23 +513,6 @@ function Schedule() {
     }));
   };
 
-  const handleSearch = (e) => {
-    if (e.target.value == '') {
-      getSchedules();
-    }
-    setSearchValue(e.target.value);
-  };
-
-  const filterSchedsToday = () => {
-    const filtered = schedsToday.filter((item) => item.patientName.toLowerCase().includes(searchValue.toLowerCase()));
-    setSchedsToday(filtered);
-  };
-
-  const filterScheds = () => {
-    const filtered = scheds.filter((item) => item.patientName.toLowerCase().includes(searchValue.toLowerCase()));
-    setScheds(filtered);
-  };
-
   const handleClear = () => {
     setNewSchedule(model);
     setSchedsToday([]);
@@ -585,6 +583,13 @@ function Schedule() {
     }
 
     return abbreviation
+  }
+
+  
+  if (load) {
+    return (
+        <Loader />
+    )
   }
 
   return (
@@ -935,21 +940,21 @@ function Schedule() {
                     </Form.Group>
                   </Col>
                  <Col lg={3}>
-                  <Form.Group controlId="filterPatientId">
-                    <Form.Label>Paciente</Form.Label>
+                    <Form.Group controlId="filterPatientId">
+                      <Form.Label>Paciente</Form.Label>
 
-                    <Select
-                      name="filterPatientId"
-                      options={patients}
-                      className="basic-multi-select"
-                      classNamePrefix="select"
-                      placeholder="Selecione"
-                      value={filterPatientSelectedOption}
-                      onChange={handleFilterPatientSelectChange}
-                      isSearchable
-                      isClearable
-                    />
-                  </Form.Group>
+                      <AsyncSelect
+                        className="basic-multi-select"
+                        cacheOptions
+                        loadOptions={loadOptions}
+                        defaultOptions
+                        onChange={handleChangePatient}
+                        value={filterPatientSelectedOption}
+                        placeholder="Digite para buscar pacientes..."
+                        noOptionsMessage={() => 'Nenhum paciente encontrado.'}
+                        isClearable
+                      />
+                    </Form.Group>
                 </Col>
 
                 <Col lg={3}>

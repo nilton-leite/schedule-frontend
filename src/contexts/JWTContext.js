@@ -101,9 +101,9 @@ export const JWTProvider = ({ children }) => {
     init();
   }, []);
 
-  if (!state.isInitialised) {
-    return <Loader />;
-  }
+  // if (!state.isInitialised) {
+  //   return <Loader />;
+  // }
 
   return <JWTContext.Provider value={{ ...state, login, logout }}>{children}</JWTContext.Provider>;
 };

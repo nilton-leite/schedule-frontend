@@ -50,13 +50,13 @@ function FloatingButton() {
         </Button>
       )}
 
-      <Modal centered size="md" show={isModalOpen} onHide={() => setIsModalOpen(false)}>
+      <Modal centered size="lg" show={isModalOpen} onHide={() => setIsModalOpen(false)}>
         <Modal.Header closeButton>
           <Modal.Title as="h5">Conecte seu WhatsApp</Modal.Title>
         </Modal.Header>
         <Modal.Body>
           <Row>
-            <Col md={{ span: 12 }}>
+            <Col>
               <center>
                 <img src={`data:image/jpeg;base64,${qrCode}`} />
               </center>

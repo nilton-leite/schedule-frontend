@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useContext } from 'react';
 import InputMask from 'react-input-mask';
 import axios from 'axios';
 import { Row, Col, Card, Button, Collapse, Form, Modal, Table } from 'react-bootstrap';
@@ -8,6 +8,12 @@ import { ENDPOINT } from '../../config/constant';
 import Select from 'react-select';
 import isValidCPF from '../../services/cpfvalidator';
 import PaginationComponent from '../components/Pagination';
+import { LoadingContext } from '../../contexts/LoadingContext';
+import Loader from '../../components/Loader/Loader';
+import AsyncSelect from 'react-select/async';
+
+
+
 
 function Patient() {
   const [isOpen, setIsOpen] = useState(false);
@@ -33,18 +39,16 @@ function Patient() {
   const [searchValue, setSearchValue] = useState('');
   const [page, setPage] = useState(1);
   const [count, setCount] = useState(0);
+  const [pageSchedules, setPageSchedules] = useState(1);
+  const [countSchedules, setCountSchedules] = useState(0);
   const [filterPatientSelectedOption, setFilterPatientSelectedOption] = useState(null);
-  const [patientsFilter, setPatientsFilter] = useState([]);
-
+  const [patientIdModal, setPatientIdModal] = useState(null);
+  const { loading } = useContext(LoadingContext);
+  const [load, setLoad] = useState(false);
   useEffect(() => {
     getPatients();
-    getPatientsFilter();
     getHealthInsurances();
   }, []);
-
-  const handleFilterPatientSelectChange = async (selected) => {
-    setFilterPatientSelectedOption(selected);
-  };
 
   const sweetAlertHandler = (alert) => {
     const MySwal = withReactContent(Swal);
@@ -56,20 +60,25 @@ function Patient() {
     });
   };
 
-  const getPatientsFilter = async () => {
-    await axios
-      .get(`${ENDPOINT.api}patients`, ENDPOINT.config)
-      .then((response) => {
-        setPatientsFilter(
-          response.data.response.map((item) => ({
-            value: item.patientId,
-            label: `(${item.phone}) ${item.name} `
-          }))
-        );
-      })
-      .catch((err) => {
-        console.error('Não foi possível puxar os Pacientes.' + err);
-      });
+  const loadOptions = async (inputValue) => { 
+    if (!inputValue || inputValue.length < 3) return [];
+  
+    try {
+      const response = await axios.get(`${ENDPOINT.api}patients/search?search=${inputValue}`, ENDPOINT.config);
+      const options = response.data.response.map((patient) => ({
+        value: patient.patientId,
+        label: `(${patient.phone}) ${patient.name} `
+      }));
+      return options;
+    } catch (error) {
+      console.error('Erro ao buscar pacientes:', error);
+      return [];
+    }
+  }; 
+  
+  const handleChangePatient = (selectedOption) => {
+    console.log('Paciente selecionado:', selectedOption);
+    setFilterPatientSelectedOption(selectedOption);
   };
 
   const filterPatients = async () => {
@@ -77,6 +86,7 @@ function Patient() {
   }
 
   const getPatients = async (pages) => {
+    setLoad(true);
     if (!pages) pages = page;
     setPage(pages);
     
@@ -88,6 +98,7 @@ function Patient() {
       .then((response) => {
         setPatients([...response.data.response.patients].sort((a, b) => a.patientId - b.patientId));
         setCount(response.data.response.count);
+        setLoad(false);
       })
       .catch((err) => {
         console.error('Não foi possível puxar os Pacientes.' + err);
@@ -108,29 +119,6 @@ function Patient() {
       .catch((err) => {
         console.error('Não foi possível puxar os Planos de Saúde.' + err);
       });
-  };
-
-  const searchCEP = async () => {
-    await axios
-      .get(`https://viacep.com.br/ws/${patient.zipCode.replace(/\D/g, '')}/json/`)
-      .then((response) => {
-        if (response.erro) {
-          console.log('erro ao buscar CEP');
-          sweetAlertHandler({ title: 'Atenção...', text: 'Não encontramos esse CEP.', icon: 'warning', showCloseButton: true });
-        } else {
-          setPatient((prevData) => ({
-            ...prevData,
-            street: response.data.logradouro
-          }));
-        }
-      })
-      .catch((err) => {
-        console.error('Não foi possível encontrar o CEP.' + err);
-      });
-  };
-
-  const searchPatient = async (e) => {
-    console.log(Object.values(patients).some((value) => typeof value === 'string' && value.includes(e.target.value)));
   };
 
   const searchExistingPatient = async () => {
@@ -154,9 +142,22 @@ function Patient() {
     }));
   };
 
-  const modalPatientOpen = async (modalinfo) => {
-    setModalData(modalinfo);
-    setIsModalOpen(true);
+  const modalPatientOpen = async (pagesSchedules, modalinfo) => {
+    if (!pagesSchedules) pagesSchedules = pageSchedules;
+    setPageSchedules(pagesSchedules);
+    if (modalinfo) setPatientIdModal(modalinfo.patientId);
+    let query = `limit=10&page=${pagesSchedules}&patientId=${modalinfo ? modalinfo.patientId : patientIdModal }`;
+
+    await axios
+    .get(`${ENDPOINT.api}patients/sch?${query}`, ENDPOINT.config)
+    .then((response) => {
+      setModalData({modalinfo, schedules: response.data.response.schedule});
+      setCountSchedules(response.data.response.count);
+      setIsModalOpen(true);
+    })
+    .catch((err) => {
+      console.error('Não foi possível puxar os Pacientes.' + err);
+    });
   };
 
   const handleChange = (e) => {
@@ -288,31 +289,17 @@ function Patient() {
       });
   };
 
-  /*   const searchCEP = async () => {
-    await axios
-      .get(`https://h-apigateway.conectagov.estaleiro.serpro.gov.br/api-cep/v1/consulta/cep/${patient.zipCode.replace(/-/g, '')}`)
-      .then((response) => {
-        console.log(response);
-      })
-      .catch((err) => {
-        sweetAlertHandler({ title: 'Poxa...', text: 'Não foi possivel alterar.', icon: 'error', showCloseButton: true });
-        console.error('Não foi possível alterar o Usuário.' + err);
-      });
-  };
- */
-
-  const handleSearch = (e) => {
-    if (e.target.value == '') {
-      getPatients();
-    }
-    setSearchValue(e.target.value);
-  };
-
   const handleClear = () => {
     setPatient(model);
     setUpdatingData(false);
     setHealthSelected([]);
   };
+
+  if (load) {
+    return (
+        <Loader />
+    )
+  }
 
   return (
     <React.Fragment>
@@ -432,7 +419,6 @@ function Patient() {
                                 name="zipCode"
                                 mask="99999-999"
                                 value={patient.zipCode}
-                                onBlur={searchCEP}
                                 onChange={handleChange}
                               />
                             </Form.Group>
@@ -526,19 +512,14 @@ function Patient() {
                     <Form.Group controlId="filterPatientId">
                       <Form.Label>Paciente</Form.Label>
 
-                      <Select
-                        name="filterPatientId"
-                        options={patientsFilter}
-                        className="basic-multi-select"
-                        classNamePrefix="select"
-                        placeholder="Selecione"
+                      <AsyncSelect
+                        cacheOptions
+                        loadOptions={loadOptions}
+                        defaultOptions
+                        onChange={handleChangePatient}
                         value={filterPatientSelectedOption}
-                        onChange={handleFilterPatientSelectChange}
-                        onKeyDown={(e) => {
-                          if (e.key === "Enter")
-                            filterPatients();
-                          }}
-                        isSearchable
+                        placeholder="Digite para buscar pacientes..."
+                        noOptionsMessage={() => 'Nenhum paciente encontrado.'}
                         isClearable
                       />
                     </Form.Group>
@@ -584,7 +565,7 @@ function Patient() {
                             variant="primary"
                             className="float-right mr-md"
                             onClick={() => {
-                              modalPatientOpen(item);
+                              modalPatientOpen(null,item);
                             }}
                           >
                             <i className="feather icon-folder" /> Ficha Completa
@@ -610,39 +591,39 @@ function Patient() {
                     <Col lg={2}>
                       <span className="modal-title">CPF</span>
                       <br />
-                      {modalData.document}
+                      {modalData.modalinfo ? modalData.modalinfo.document : null}
                     </Col>
                     <Col lg={5}>
                       <span className="modal-title">Nome</span>
                       <br />
-                      {modalData.name}
+                      {modalData.modalinfo ? modalData.modalinfo.name : null}
                     </Col>
                     <Col lg={3}>
                       <span className="modal-title">Data de Nascimento</span>
                       <br />
-                      {modalData.dateBirth}
+                      {modalData.modalinfo ? modalData.modalinfo.dateBirth : null}
                     </Col>
                     <Col lg={2}>
                       <span className="modal-title">Telefone</span>
                       <br />
-                      {modalData.phone}
+                      {modalData.modalinfo ? modalData.modalinfo.phone : null}
                     </Col>
                   </Row>
                   <Row className="m-t-15">
                     <Col lg={2}>
                       <span className="modal-title">CEP</span>
                       <br />
-                      {modalData.zipCode}
+                      {modalData.modalinfo ? modalData.modalinfo.zipCode : null}
                     </Col>
                     <Col lg={5}>
                       <span className="modal-title">Endereço</span>
                       <br />
-                      {modalData.street}, {modalData.number}
+                      {modalData.modalinfo ? modalData.modalinfo.street : null}, {modalData.modalinfo ? modalData.modalinfo.number : null}
                     </Col>
                     <Col lg={3}>
                       <span className="modal-title">Aceita mensagem?</span>
                       <br />
-                      {modalData.acceptedMessage ? 'Sim' : 'Não'}
+                      {modalData.modalinfo ? modalData.modalinfo.acceptedMessage ? 'Sim' : 'Não' : null} 
                     </Col>
                   </Row>
                   <hr />
@@ -669,6 +650,7 @@ function Patient() {
                           </tr>
                         ))}
                       </tbody>
+                      <PaginationComponent page={pageSchedules} count={countSchedules} handlePagination={modalPatientOpen}></PaginationComponent>
                     </Table>
                   ) : (
                     <center>

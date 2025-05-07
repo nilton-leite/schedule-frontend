@@ -27,6 +27,7 @@
     "jwt-decode": "^3.1.2",
     "lodash": "^4.17.21",
     "match-sorter": "6.3.1",
+    "pdfmake": "^0.2.19",
     "pnotify": "4.0.0",
     "qrcode.react": "^3.1.0",
     "rc-slider": "^9.7.5",
@@ -86,8 +87,5 @@
       "last 1 firefox version",
       "last 1 safari version"
     ]
-  },
-  "devDependencies": {
-    "prettier": "2.6.0"
   }
 }

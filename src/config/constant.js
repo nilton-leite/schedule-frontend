@@ -44,7 +44,8 @@ export const CONFIG = {
 };
 
 export const ENDPOINT = {
-  api: 'https://agenda.orlwambier.com.br/api/',
+  // api: 'https://agenda.orlwambier.com.br/api/',
+  api: 'http://localhost:3333/api/',
   config: {
     headers: {
       Authorization: `Bearer ${localStorage.getItem('access_token')}`
