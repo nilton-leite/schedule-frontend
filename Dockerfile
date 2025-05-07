@@ -10,7 +10,7 @@ COPY package*.json /usr/src/app
 
 ENV NODE_ENV=production
 
-RUN NODE_OPTIONS=--openssl-legacy-provider
+ENV NODE_OPTIONS=--openssl-legacy-provider
 
 #RUN yarn global add typescript
 
