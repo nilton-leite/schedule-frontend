@@ -66,6 +66,7 @@
     "sweetalert2": "^11.4.4",
     "sweetalert2-react-content": "^4.2.0",
     "tippy.js": "^6.3.7",
+    "util": "^0.12.5",
     "web-vitals": "^1.1.0",
     "yup": "^0.32.9"
   },
