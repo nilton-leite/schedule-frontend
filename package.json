@@ -81,13 +81,13 @@
     "eject": "react-scripts eject"
   },
   "browserslist": [
-      ">0.2%",
-      "not dead",
-      "not op_mini all"
+    ">0.2%",
+    "not dead",
+    "not op_mini all"
   ],
   "devDependencies": {
     "@babel/cli": "^7.27.2",
-    "@babel/core": "^7.27.1",
+    "@babel/core": "^7.16.0",
     "@babel/preset-env": "^7.27.2",
     "react-app-rewired": "^2.2.1"
   }
