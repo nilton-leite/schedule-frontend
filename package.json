@@ -4,7 +4,6 @@
   "private": true,
   "homepage": "",
   "dependencies": {
-    "@babel/core": "^7.27.1",
     "@fullcalendar/bootstrap": "^6.1.8",
     "@fullcalendar/core": "^6.1.8",
     "@fullcalendar/daygrid": "^6.1.8",
@@ -53,7 +52,7 @@
     "react-rating": "^2.0.5",
     "react-redux": "^7.2.6",
     "react-router-dom": "^5.2.0",
-    "react-scripts": "4.0.3",
+    "react-scripts": "^5.0.1",
     "react-select": "^5.2.2",
     "react-slick": "^0.28.1",
     "react-table": "^7.7.0",
