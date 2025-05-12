@@ -354,7 +354,7 @@ const FullEventCalendar = () => {
   };
 
   const getDoctorSchedules = async (fullendpoint, id) => {
-    setLoad(true);
+    // setLoad(true);
     await axios
       .get(`${ENDPOINT.api}${fullendpoint}`, ENDPOINT.config)
       .then(async (response) => {
@@ -398,12 +398,12 @@ const FullEventCalendar = () => {
           );
           const orderednd = newdata.sort((a, b) => b.scheduleId - a.scheduleId);
           await getTodaySchedules(orderednd);
-          setLoad(false);
+          // setLoad(false);
         }
       })
       .catch((err) => {
         console.error('Não foi possível puxar os Médicos.' + err);
-        setLoad(false);
+        // setLoad(false);
       });
   };
 
@@ -585,7 +585,7 @@ const FullEventCalendar = () => {
   };
 
   const getSchedules = async () => {
-    setLoad(true);
+    // setLoad(true);
     await axios
       .get(`${ENDPOINT.api}schedules`, ENDPOINT.config)
       .then(async (response) => {
@@ -594,7 +594,7 @@ const FullEventCalendar = () => {
 
         setScheds(orderednd);
         await getTodaySchedules(orderednd);
-        setLoad(false);
+        // setLoad(false);
       })
       .catch((err) => {
         console.error('Não foi possível puxar as consultas.' + err);
@@ -994,11 +994,11 @@ const FullEventCalendar = () => {
     setHealthInsuranceSelectedOption('');
   };
 
-  if (load) {
-    return (
-        <Loader />
-    )
-  }
+  // if (load) {
+  //   return (
+  //       <Loader />
+  //   )
+  // }
 
   return (
     <React.Fragment>
