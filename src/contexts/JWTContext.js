@@ -88,6 +88,8 @@ export const JWTProvider = ({ children }) => {
         }
       } catch (err) {
         console.error(err);
+        // Token inválido ou expirado: limpa a sessão guardada para voltar ao login.
+        setSession(null);
         dispatch({
           type: ACCOUNT_INITIALISE,
           payload: {
@@ -99,6 +101,25 @@ export const JWTProvider = ({ children }) => {
     };
 
     init();
+  }, []);
+
+  // Quando a API responde 401 (token expirado ou inválido), encerra a sessão e volta ao login.
+  // O token agora expira (JWT_EXPIRES_IN na API); antes valia para sempre.
+  useEffect(() => {
+    const interceptor = axios.interceptors.response.use(
+      (response) => response,
+      (error) => {
+        const status = error && error.response && error.response.status;
+        const url = (error && error.config && error.config.url) || '';
+        const isLoginRequest = url.endsWith('/auth') || url.endsWith('auth');
+        if (status === 401 && !isLoginRequest && window.localStorage.getItem('access_token')) {
+          setSession(null);
+          dispatch({ type: LOGOUT });
+        }
+        return Promise.reject(error);
+      }
+    );
+    return () => axios.interceptors.response.eject(interceptor);
   }, []);
 
   // if (!state.isInitialised) {
