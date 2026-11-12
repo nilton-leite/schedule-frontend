@@ -43,17 +43,22 @@ export const CONFIG = {
   }
 };
 
+// Cabeçalho de autenticação montado na hora de cada requisição, para sempre usar o token atual
+// (antes era lido uma única vez ao carregar a página).
+const authHeaders = () => ({
+  headers: {
+    Authorization: `Bearer ${localStorage.getItem('access_token')}`
+  }
+});
+
 export const ENDPOINT = {
-  api: 'https://agenda.orlwambier.com.br/api/',
-  // api: 'http://localhost:3333/api/',
-  config: {
-    headers: {
-      Authorization: `Bearer ${localStorage.getItem('access_token')}`
-    }
+  // Relativo por padrão: em produção o Nginx serve o front e a API no mesmo domínio;
+  // em desenvolvimento o setupProxy.js encaminha /api para a API local.
+  api: process.env.REACT_APP_API_URL || '/api/',
+  get config() {
+    return authHeaders();
   },
-  configunath: {
-    headers: {
-      Authorization: `Bearer ${localStorage.getItem('access_token')}`
-    }
+  get configunath() {
+    return authHeaders();
   }
 };

@@ -1,10 +1,14 @@
 const { createProxyMiddleware } = require('http-proxy-middleware');
 
-module.exports = function(app) {
+// Só usado pelo servidor de desenvolvimento (yarn start).
+// Encaminha /api para a API local; nunca para produção.
+module.exports = function (app) {
+  // http-proxy-middleware v3: pathFilter mantém o prefixo /api no caminho encaminhado
+  // (montar com app.use('/api', ...) faria o Express remover o prefixo).
   app.use(
-    '/api',
     createProxyMiddleware({
-      target: 'http://85.31.62.71:3333'
+      pathFilter: '/api',
+      target: process.env.API_PROXY_TARGET || 'http://localhost:3333'
     })
   );
 };
