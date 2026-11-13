@@ -1,0 +1,4 @@
+# Saídas da suíte de QA (Playwright)
+.auth/
+report/
+test-results/
