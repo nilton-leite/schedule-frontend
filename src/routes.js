@@ -42,11 +42,17 @@ const routes = [
     path: '/',
     component: lazy(() => import('./views/auth/signin/SignIn'))
   },
+  // Confirmação pelo link do WhatsApp: pública e sem guard (abre também para quem estiver logado).
   {
     exact: true,
-    guard: GuestGuard,
-    path: '/confirmacao',
+    path: '/confirmacao/:token',
     component: lazy(() => import('./views/confirmation/Confirmation'))
+  },
+  // Links antigos (sem token): só orientam a usar o link novo.
+  {
+    exact: true,
+    path: '/confirmacao',
+    component: lazy(() => import('./views/confirmation/OldLinkNotice'))
   },
   {
     exact: true,
