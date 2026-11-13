@@ -5,6 +5,22 @@ import { Formik } from 'formik';
 import useAuth from '../../../hooks/useAuth';
 import useScriptRef from '../../../hooks/useScriptRef';
 
+// Mensagem certa para cada falha (QA-021): antes tudo aparecia como "senha incorreta",
+// inclusive limite de tentativas (429) e servidor fora do ar.
+const loginErrorMessage = (err) => {
+  const response = err && err.response;
+  if (!response) {
+    return 'Não foi possível conectar ao sistema. Verifique a internet e tente novamente.';
+  }
+  const apiMessage = response.data && typeof response.data.message === 'string' ? response.data.message : '';
+  if (response.status === 401) return 'Usuário ou senha incorretos.';
+  if (response.status === 429) {
+    return /^Muitas tentativas/.test(apiMessage) ? apiMessage : 'Muitas tentativas de login. Aguarde um minuto e tente de novo.';
+  }
+  if (response.status >= 500) return 'O sistema está indisponível no momento. Tente novamente em instantes.';
+  return 'Não foi possível entrar. Confira o CPF e a senha.';
+};
+
 const JWTLogin = ({ className, ...rest }) => {
   const { login } = useAuth();
   const scriptedRef = useScriptRef();
@@ -30,9 +46,8 @@ const JWTLogin = ({ className, ...rest }) => {
         } catch (err) {
           console.error('err:', err);
           if (scriptedRef.current) {
-            console.log(err);
             setStatus({ success: false });
-            setErrors({ submit: 'Usuário ou senha incorretos.' });
+            setErrors({ submit: loginErrorMessage(err) });
             setSubmitting(false);
           }
         }

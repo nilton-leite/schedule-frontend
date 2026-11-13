@@ -51,18 +51,25 @@ test.describe('Robustez', () => {
     await expect(page.getByText('A agenda pode estar incompleta')).toHaveCount(0);
   });
 
-  test('API fora do ar no login: mensagem não diz que a senha está errada', async ({ browser }) => {
-    const ctx = await browser.newContext({ storageState: { cookies: [], origins: [] } });
-    const page = await ctx.newPage();
-    knownBug('QA-021', 'qualquer falha no login (servidor fora, 429, 500) aparece como "Usuário ou senha incorretos."');
-    await page.route('**/api/auth', (r) => r.abort('connectionrefused'));
-    await page.goto('/');
-    await page.getByPlaceholder('CPF').fill('10000000002');
-    await page.getByPlaceholder('Senha').fill('qualquer');
-    await page.getByRole('button', { name: 'LOGIN' }).click();
-    await expect(page.getByText(/indispon|conex|tente novamente/i)).toBeVisible({ timeout: 5000 });
-    await ctx.close();
-  });
+  for (const [caso, resposta, mensagem] of [
+    ['servidor fora do ar', 'abort', /Não foi possível conectar/],
+    ['erro interno (500)', '500', /indisponível no momento/]
+  ] as const) {
+    test(`login com ${caso}: mensagem certa, sem dizer que a senha está errada (QA-021)`, async ({ browser }) => {
+      const ctx = await browser.newContext({ storageState: { cookies: [], origins: [] } });
+      const page = await ctx.newPage();
+      await page.route('**/api/auth', (r) =>
+        resposta === 'abort' ? r.abort('connectionrefused') : r.fulfill({ status: 500, contentType: 'application/json', body: '{"statusCode":500}' })
+      );
+      await page.goto('/');
+      await page.getByPlaceholder('CPF').fill('10000000002');
+      await page.getByPlaceholder('Senha').fill('qualquer');
+      await page.getByRole('button', { name: 'LOGIN' }).click();
+      await expect(page.getByText(mensagem)).toBeVisible();
+      await expect(page.getByText('Usuário ou senha incorretos.')).toHaveCount(0);
+      await ctx.close();
+    });
+  }
 });
 
 test.describe('Acessibilidade (axe) — violações críticas', () => {

@@ -14,6 +14,9 @@ causa descrita (conferido um a um).
 | 13/11 | Validador único de regras da agenda (`schedule-api/src/modules/schedules/schedule-rules.ts`), usado na criação e na edição | QA-002, QA-003, QA-005, QA-007, QA-008, QA-025; QA-006 e QA-009 **na API** (as listas da tela ficam para a C2) |
 | 13/11 | Agenda lista também médicos desativados que têm consultas de hoje em diante (`agendaDoctorFilters` em `schedules.service.ts`), com `active: false`; a tela marca o evento como "– inativo" | QA-023 |
 | 13/11 | Agenda: faixa "A agenda pode estar incompleta" com "Tentar de novo" quando agenda, médicos, situações, tipos ou planos não carregam; marcação bloqueada até recarregar (`FullEventCalendar.js`) | QA-020 |
+| 13/11 | Login: limite por CPF (5 erros em 15 min bloqueiam só aquele CPF; login certo zera — `LoginAttemptsService`), limite por IP subiu de 10 para 60/min; CPF aceito com pontuação; mensagens distintas na tela para senha errada, “aguarde”, sem conexão e sistema indisponível | QA-013, QA-019, QA-021 |
+
+**Fase C1 (alta) concluída.** Pendentes: C2 (agenda) e C3 (cadastros e ajustes).
 
 ## Resumo executivo
 - **O fluxo principal funciona**: login por perfil, criar consulta pela agenda, vê-la no calendário, confirmar pela

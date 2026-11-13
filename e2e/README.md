@@ -28,8 +28,8 @@ A cada execução o `webServer` do Playwright:
 - `QA_SHOW_BUGS=1 npm run e2e` roda **sem** as marcações, mostrando a mensagem real de cada falha.
 - Regras de negócio são testadas direto na API (`fixtures/api.ts`); fluxos de tela, com page objects (`pages/`).
 - Datas são relativas a hoje (`fixtures/dates.ts`) e ficam fora da janela de envio automático (≥ 3 dias).
-- O limite de login da API é 10/min por IP: os testes reaproveitam a sessão do `auth.setup.ts`;
-  `zz-limite-login.spec.ts` (que estoura o limite de propósito) roda por último.
+- Limite de login da API: 5 erros por CPF em 15 min e 60/min por IP; os testes reaproveitam a sessão do `auth.setup.ts`;
+  `zz-limite-login.spec.ts` (que bloqueia um CPF de propósito) roda por último.
 - Abrir uma URL interna direto sempre cai na agenda (QA-014): navegue pelo menu.
 
 ## Estrutura

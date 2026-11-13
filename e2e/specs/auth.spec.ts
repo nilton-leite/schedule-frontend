@@ -1,9 +1,8 @@
 import { test, expect } from '@playwright/test';
-import { knownBug } from '../fixtures/bug';
 // eslint-disable-next-line @typescript-eslint/no-var-requires
 const { PASSWORD, USERS } = require('../qa-env');
 
-// Sem sessão: cada teste faz o próprio login. (Poucos logins por arquivo: o limite da API é 10/min por IP.)
+// Sem sessão: cada teste faz o próprio login. (Limite da API: 5 erros por CPF em 15 min; 60 logins/min por IP.)
 test.use({ storageState: { cookies: [], origins: [] } });
 
 async function login(page: import('@playwright/test').Page, cpf: string, senha: string) {
@@ -50,8 +49,7 @@ test.describe('Autenticação e sessão', () => {
     expect(erros).toEqual([]);
   });
 
-  test('QA-019: login aceita CPF digitado com pontuação (000.000.000-00)', async ({ page }) => {
-    knownBug('QA-019', 'o campo CPF do login não tem máscara nem remove a pontuação');
+  test('login aceita CPF digitado com pontuação (000.000.000-00) — QA-019 corrigido', async ({ page }) => {
     const d = USERS.recepcao.document;
     await login(page, `${d.slice(0, 3)}.${d.slice(3, 6)}.${d.slice(6, 9)}-${d.slice(9)}`, PASSWORD);
     await expect(page).toHaveURL(/agenda/);
