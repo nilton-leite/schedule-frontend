@@ -226,6 +226,8 @@ const FullEventCalendar = () => {
   const assembleFullSchedule = (originalData) => {
     const newData = [];
     originalData.forEach((doctor) => {
+      // Médico desativado com consultas futuras continua na agenda (QA-023), sinalizado para a recepção remarcar.
+      const doctorLabel = doctor.active === false ? `${doctor.name} – inativo` : doctor.name;
       doctor.schedules.forEach((schedule) => {
         const [day, month, year] = schedule.data.split('/');
         const formattedDate = `${year}-${month}-${day}`;
@@ -258,7 +260,7 @@ const FullEventCalendar = () => {
         }
         newData.push({
           id: schedule.scheduleId,
-          title: `[${type}] (${doctor.name}) ${schedule.patientName} | ${setStatusIcon(schedule.statusId)} ${
+          title: `[${type}] (${doctorLabel}) ${schedule.patientName} | ${setStatusIcon(schedule.statusId)} ${
             schedule.healthInsurance !== null ? `{${schedule.healthInsurance.name}}` : ''
           }`,
           description: 'io',
@@ -268,7 +270,7 @@ const FullEventCalendar = () => {
           backgroundColor: setColour(schedule.statusId),
           eventTextColor: '#fff',
           extendedProps: {
-            title: `[${type}] (${doctor.name}) ${schedule.patientName} | ${setStatusIcon(schedule.statusId)} ${
+            title: `[${type}] (${doctorLabel}) ${schedule.patientName} | ${setStatusIcon(schedule.statusId)} ${
               schedule.healthInsurance !== null ? `{${schedule.healthInsurance.name}}` : ''
             }`,
             typeModal: 'SCHEDULE',

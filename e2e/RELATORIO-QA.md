@@ -12,6 +12,7 @@ causa descrita (conferido um a um).
 | Data | Correção | Bugs resolvidos |
 |---|---|---|
 | 13/11 | Validador único de regras da agenda (`schedule-api/src/modules/schedules/schedule-rules.ts`), usado na criação e na edição | QA-002, QA-003, QA-005, QA-007, QA-008, QA-025; QA-006 e QA-009 **na API** (as listas da tela ficam para a C2) |
+| 13/11 | Agenda lista também médicos desativados que têm consultas de hoje em diante (`agendaDoctorFilters` em `schedules.service.ts`), com `active: false`; a tela marca o evento como "– inativo" | QA-023 |
 
 ## Resumo executivo
 - **O fluxo principal funciona**: login por perfil, criar consulta pela agenda, vê-la no calendário, confirmar pela

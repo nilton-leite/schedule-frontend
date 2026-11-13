@@ -12,20 +12,34 @@ test.beforeAll(async () => {
 test.afterAll(async () => api?.dispose());
 
 test.describe('Médicos', () => {
-  test('QA-023: desativar médico com consultas futuras não as esconde da agenda', async () => {
-    knownBug('QA-023', 'a agenda só lista médicos ativos: as consultas futuras do médico desativado somem');
-    const bruno = await idOf('doctor', 'Dr. Bruno Reis');
-    const p = await patientByFirstName('Rafael');
-    const r = await api.createSchedule({ doctorId: bruno, patientId: p.id, data: asFrontSends(nextDay(['ter'], 9)), time: '14:00:00', timeEnd: '14:10:00' });
-    expect(r.body.statusCode, JSON.stringify(r.body)).toBe(200);
-    await query(`UPDATE doctor SET active = false WHERE "doctorId" = $1`, [bruno]);
-    try {
-      const agenda = await api.get('schedules/only');
-      const todos = JSON.stringify(agenda.body);
-      expect(todos, 'a consulta do Rafael precisa continuar visível para a recepção remarcar').toContain(p.name);
-    } finally {
-      await query(`UPDATE doctor SET active = true WHERE "doctorId" = $1`, [bruno]);
-    }
+  test.describe('QA-023: médico desativado com consultas futuras', () => {
+    test.use({ storageState: 'e2e/.auth/recepcao.json' });
+
+    test('continua na agenda (API e tela), marcado como inativo; sem consultas futuras, não aparece', async ({ page }) => {
+      const bruno = await idOf('doctor', 'Dr. Bruno Reis');
+      const p = await patientByFirstName('Rafael');
+      const dia = nextDay(['ter'], 9);
+      const r = await api.createSchedule({ doctorId: bruno, patientId: p.id, data: asFrontSends(dia), time: '14:00:00', timeEnd: '14:10:00' });
+      expect(r.body.statusCode, JSON.stringify(r.body)).toBe(200);
+      await query(`UPDATE doctor SET active = false WHERE "doctorId" = $1`, [bruno]);
+      try {
+        const agenda = (await api.get('schedules/only')).body.response as Array<{ name: string; active: boolean; schedules: Array<{ patientName: string }> }>;
+        const doc = agenda.find((d) => d.name === 'Dr. Bruno Reis');
+        expect(doc, 'o médico desativado com consulta futura precisa aparecer').toBeTruthy();
+        expect(doc.active).toBe(false);
+        expect(doc.schedules.map((s) => s.patientName)).toContain(p.name);
+        // Médico desativado SEM consultas futuras continua fora da agenda.
+        expect(agenda.map((d) => d.name)).not.toContain('Dr. Desligado Teste');
+
+        const tela = new AgendaPage(page);
+        await tela.open();
+        await tela.todas();
+        await tela.irPara(dia);
+        await expect(tela.evento(p.name)).toContainText('Dr. Bruno Reis – inativo');
+      } finally {
+        await query(`UPDATE doctor SET active = true WHERE "doctorId" = $1`, [bruno]);
+      }
+    });
   });
 });
 
