@@ -8,6 +8,11 @@ aplicação (decisão: só reportar).
 de confirmação), com os bugs abaixo marcados como falha esperada. `QA_SHOW_BUGS=1` mostra cada um falhando pela
 causa descrita (conferido um a um).
 
+## Andamento das correções
+| Data | Correção | Bugs resolvidos |
+|---|---|---|
+| 13/11 | Validador único de regras da agenda (`schedule-api/src/modules/schedules/schedule-rules.ts`), usado na criação e na edição | QA-002, QA-003, QA-005, QA-007, QA-008, QA-025; QA-006 e QA-009 **na API** (as listas da tela ficam para a C2) |
+
 ## Resumo executivo
 - **O fluxo principal funciona**: login por perfil, criar consulta pela agenda, vê-la no calendário, confirmar pela
   ficha (com plano), lista de consultas, cadastro de pacientes, página pública de confirmação (desktop e iPhone),
@@ -29,6 +34,8 @@ causa descrita (conferido um a um).
 | QA-007 | Editar consulta (API) | A **edição não aplica nenhuma regra**: dá para mover uma consulta para domingo, para o passado ou para 03:00. A ficha da agenda permite alterar data e hora. | `PATCH /schedules/:id` com domingo / data passada / 03:00 → 200 (confirmado no banco). | `agenda-regras` |
 | QA-002 | Criar consulta (API) | O **primeiro dia** de uma ausência temporária não é bloqueado (só os dias do meio e o último). | Ausência seg–qua 08–18h → marcar segunda 10h → aceito. | `agenda-regras` |
 | QA-003 | Criar consulta (API) | Só **uma** ausência ativa do médico é considerada (`findOne`): uma segunda ausência (ex.: férias depois de um congresso) não bloqueia nada. | Duas ausências → marcar dentro da segunda → aceito. | `agenda-regras` |
+
+| QA-025 | Editar consulta (API) | **Editar sem enviar a situação gravava "Finalizado"**: sem `statusId`, o `findOneBy` ignorava o filtro e pegava o primeiro status da tabela. A tela de Consultas envia só os campos alterados, então mudar observação/horário por ela finalizava a consulta. *(Achado durante a correção do QA-007; corrigido.)* | `PATCH` só com `obs` → status 1. | `agenda-regras` |
 
 ### Média
 | Id | Onde | Problema | Teste |

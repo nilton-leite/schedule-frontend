@@ -62,14 +62,12 @@ test.describe('data e escala do médico', () => {
   });
 
   test('QA-005: horário em outro formato ("9:00" ou "08:00" sem segundos) é aceito dentro da escala', async () => {
-    knownBug('QA-005', 'horários comparados como texto; "9:00" e "08:00" (sem segundos) caem fora da escala');
     const qua = nextDay(['quar']);
     expect(aceito(await criar(ana, pac.Cecília, qua, '9:00', {}, true))).toBe(true);
     expect(aceito(await criar(ana, pac.Cecília, qua, '08:00', {}, true))).toBe(true);
   });
 
   test('QA-006: médico inativo não recebe agendamento', async () => {
-    knownBug('QA-006', 'a criação não verifica se o médico está ativo');
     const seg = nextDay(['seg']);
     const r = await criar(inativo, pac.Davi, seg, '10:00');
     expect(aceito(r)).toBe(false);
@@ -109,7 +107,6 @@ test.describe('ausência temporária do médico', () => {
   });
 
   test('QA-002: PRIMEIRO dia da ausência também é recusado', async () => {
-    knownBug('QA-002', 'a regra só bloqueia dias > início e o dia final; o primeiro dia passa');
     recusado(await criar(ana, pac.Elisa, inicio, '10:00'), /ausencia temporária/);
   });
 
@@ -118,7 +115,6 @@ test.describe('ausência temporária do médico', () => {
   });
 
   test('QA-003: uma segunda ausência do mesmo médico também bloqueia', async () => {
-    knownBug('QA-003', 'a criação só consulta UMA ausência ativa do médico (findOne)');
     const outra = addDays(inicio, 14);
     const motivo = await idOf('reasonTemporaryAbsence', 'Férias');
     await api.post('temporaryAbsence', {
@@ -142,39 +138,89 @@ test.describe('conflito e capacidade', () => {
 test.describe('edição respeita as mesmas regras', () => {
   let id: number;
   test.beforeAll(async () => {
-    const seg = nextDay(['seg'], 5);
-    expect(aceito(await criar(ana, pac.Heitor, seg, '09:00'))).toBe(true);
+    // Fora da ausência de teste da Ana (seg–qua da semana seguinte).
+    const sex = nextDay(['sex'], 5);
+    expect(aceito(await criar(ana, pac.Heitor, sex, '09:00'))).toBe(true);
     id = await lastScheduleOf(pac.Heitor);
   });
 
   test('QA-007: mover para um domingo (médico não atende) é recusado', async () => {
-    knownBug('QA-007', 'PATCH /schedules/:id não aplica nenhuma regra de escala, ausência ou data');
     const r = await api.patch(`schedules/${id}`, { data: asFrontSends(nextDay(['dom'])) });
     expect(r.body.statusCode).toBe(400);
   });
 
   test('QA-007: mover para o passado é recusado', async () => {
-    knownBug('QA-007', 'ver relatório');
     const r = await api.patch(`schedules/${id}`, { data: asFrontSends(addDays(today(), -3)) });
     expect(r.body.statusCode).toBe(400);
   });
 
   test('QA-007: mover para fora do horário (03:00) é recusado', async () => {
-    knownBug('QA-007', 'ver relatório');
     const r = await api.patch(`schedules/${id}`, { time: '03:00', timeEnd: '03:10' });
     expect(r.body.statusCode).toBe(400);
   });
 });
 
+test.describe('edição: o que precisa continuar funcionando', () => {
+  test('QA-025: editar sem enviar a situação não muda a situação (antes virava "Finalizado")', async () => {
+    const p = await idOf('patient', 'Alice Teste Silva');
+    expect(aceito(await criar(ana, p, nextDay(['sex'], 12), '10:40'))).toBe(true);
+    const id = await lastScheduleOf(p);
+    const r = await api.patch(`schedules/${id}`, { obs: 'só a observação' });
+    expect(r.body.statusCode).toBe(200);
+    expect((await scheduleById(id)).statusId).toBe(2);
+  });
+
+  test('mudar só a situação de consulta já marcada é permitido mesmo se a escala mudou depois', async () => {
+    const p = await idOf('patient', 'Alice Teste Silva');
+    const dia = nextDay(['quin'], 12);
+    expect(aceito(await criar(ana, p, dia, '11:20'))).toBe(true);
+    const id = await lastScheduleOf(p);
+    const [antes] = await query<{ workDays: Record<string, unknown> }>(`SELECT "workDays" FROM doctor WHERE "doctorId" = $1`, [ana]);
+    await query(`UPDATE doctor SET "workDays" = jsonb_set("workDays", '{quin,status}', 'false') WHERE "doctorId" = $1`, [ana]);
+    try {
+      // A ficha reenvia data e hora iguais junto com a nova situação.
+      const r = await api.patch(`schedules/${id}`, { statusId: 4, data: asFrontSends(dia), time: '11:20:00', timeEnd: '11:30:00' });
+      expect(r.body.statusCode, JSON.stringify(r.body)).toBe(200);
+      expect((await scheduleById(id)).statusId).toBe(4);
+    } finally {
+      await query(`UPDATE doctor SET "workDays" = $2 WHERE "doctorId" = $1`, [ana, JSON.stringify(antes.workDays)]);
+    }
+  });
+
+  test('mover para um horário válido é aceito e gravado', async () => {
+    const p = await idOf('patient', 'Alice Teste Silva');
+    expect(aceito(await criar(ana, p, nextDay(['ter'], 12), '09:40'))).toBe(true);
+    const id = await lastScheduleOf(p);
+    const novoDia = nextDay(['quar'], 20); // fora das ausências de teste
+    const r = await api.patch(`schedules/${id}`, { data: asFrontSends(novoDia), time: '14:20:00', timeEnd: '14:30:00' });
+    expect(r.body.statusCode, JSON.stringify(r.body)).toBe(200);
+    const s = await scheduleById(id);
+    expect(new Date(s.data).getDate()).toBe(novoDia.getDate());
+    expect(s.time.slice(0, 5)).toBe('14:20');
+    expect(s.statusId).toBe(2);
+  });
+
+  test('manter o plano desativado que a consulta já tinha é permitido; trocar para ele é recusado', async () => {
+    const antigo = await idOf('healthInsurance', 'Plano Desativado QA');
+    const unimed = await idOf('healthInsurance', 'Unimed QA');
+    const p = await idOf('patient', 'Alice Teste Silva');
+    expect(aceito(await criar(ana, p, nextDay(['seg'], 12), '15:20', { hasHealthInsurance: true, healthInsuranceId: unimed }))).toBe(true);
+    const id = await lastScheduleOf(p);
+    recusado(await api.patch(`schedules/${id}`, { hasHealthInsurance: true, healthInsuranceId: antigo }), /desativado/);
+    // Consulta antiga com o plano que depois foi desativado: confirmar continua possível.
+    await query(`UPDATE schedule SET "healthInsuranceId" = $2 WHERE "scheduleId" = $1`, [id, antigo]);
+    const r = await api.patch(`schedules/${id}`, { statusId: 4, hasHealthInsurance: true, healthInsuranceId: antigo });
+    expect(r.body.statusCode, JSON.stringify(r.body)).toBe(200);
+  });
+});
+
 test.describe('dados inválidos', () => {
   test('QA-008: plano de saúde inexistente devolve erro claro (não 500)', async () => {
-    knownBug('QA-008', 'NotFound dentro da transação vira "throw new Error" → 500 genérico');
     const r = await criar(ana, pac.Bernardo, nextDay(['quin'], 6), '10:20', { hasHealthInsurance: true, healthInsuranceId: 99999 });
     expect(r.status).toBeLessThan(500);
   });
 
   test('QA-009: plano de saúde desativado não pode ser usado num agendamento novo', async () => {
-    knownBug('QA-009', 'a criação não verifica se o plano está ativo');
     const antigo = await idOf('healthInsurance', 'Plano Desativado QA');
     const r = await criar(ana, pac.Bernardo, nextDay(['quin'], 6), '10:30', { hasHealthInsurance: true, healthInsuranceId: antigo });
     expect(aceito(r)).toBe(false);
