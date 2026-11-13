@@ -1,6 +1,5 @@
 import { test, expect } from '@playwright/test';
 import { Api } from '../fixtures/api';
-import { knownBug } from '../fixtures/bug';
 import { idOf, patientByFirstName, query } from '../fixtures/db';
 import { asFrontSends, nextDay } from '../fixtures/dates';
 import { AgendaPage } from '../pages/AgendaPage';
@@ -58,7 +57,6 @@ test.describe('Parâmetros refletem na agenda', () => {
   });
 
   test('QA-009: plano desativado não é oferecido na Nova Consulta', async ({ page }) => {
-    knownBug('QA-009', 'a agenda oferece planos desativados (e a API aceita)');
     const agenda = new AgendaPage(page);
     await agenda.open();
     await agenda.clicarHorario('09:00');

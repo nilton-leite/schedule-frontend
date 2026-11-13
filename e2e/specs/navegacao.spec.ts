@@ -1,15 +1,19 @@
 import { test, expect } from '@playwright/test';
-import { knownBug } from '../fixtures/bug';
 
 test.use({ storageState: 'e2e/.auth/admin.json' });
 
+const fim = (url: string) => new RegExp(url.replace(/\//g, '\\/') + '$');
+
 test.describe('navegação', () => {
   for (const url of ['/pacientes', '/medicos', '/consultas', '/parametros/usuarios']) {
-    test(`QA-014: abrir ${url} pelo endereço (ou recarregar a página) fica em ${url}`, async ({ page }) => {
-      knownBug('QA-014', 'link direto / F5 numa tela interna sempre volta para /agenda');
+    test(`abrir ${url} pelo endereço (ou recarregar a página) fica em ${url} — QA-014 corrigido`, async ({ page }) => {
       await page.goto(url);
-      await page.waitForLoadState('networkidle');
-      await expect(page).toHaveURL(new RegExp(`${url}$`));
+      await expect(page).toHaveURL(fim(url));
+      await page.waitForTimeout(2000); // um redirecionamento tardio para a agenda também reprova
+      await expect(page).toHaveURL(fim(url));
+      await expect(page.locator('.fc')).toHaveCount(0); // não é a agenda
+      await page.reload();
+      await expect(page).toHaveURL(fim(url));
     });
   }
 
@@ -18,7 +22,7 @@ test.describe('navegação', () => {
     await expect(page.locator('.fc')).toBeVisible();
     for (const [menu, url] of [['Pacientes', '/pacientes'], ['Médicos', '/medicos'], ['Consultas', '/consultas'], ['Agenda', '/agenda']]) {
       await page.locator('.pcoded-navbar').getByText(menu, { exact: true }).click();
-      await expect(page).toHaveURL(new RegExp(`${url}$`));
+      await expect(page).toHaveURL(fim(url));
     }
   });
 });

@@ -646,7 +646,8 @@ function Patient() {
                             <td>{item.data}</td>
                             <td>{item.time}</td>
                             <td>{item.doctorId}</td>
-                            <td>{item.hasFistSchedule ? 'Não' : 'Sim'}</td>
+                            {/* Campo certo da API (antes lia "hasFistSchedule", inexistente, e mostrava sempre "Sim") — QA-011 */}
+                            <td>{item.hasFirstQuery ? 'Sim' : 'Não'}</td>
                           </tr>
                         ))}
                       </tbody>

@@ -4,6 +4,7 @@ import { Row, Col, Card, Button, Collapse, Form, Table, OverlayTrigger, Tooltip,
 import Swal from 'sweetalert2';
 import withReactContent from 'sweetalert2-react-content';
 import { ENDPOINT } from '../../config/constant';
+import { onlyActive } from '../../config/options';
 import Select from 'react-select';
 import DatePicker from 'react-datepicker';
 import { registerLocale } from 'react-datepicker';
@@ -186,7 +187,8 @@ function Schedule() {
         setDoctors(
           response.data.response.map((item) => ({
             value: item.doctorId,
-            label: item.name
+            label: item.name,
+            active: item.active
           }))
         );
       })
@@ -525,7 +527,8 @@ function Schedule() {
         setHealthInsurances(
           response.data.response.map((item) => ({
             value: item.healthInsuranceId,
-            label: item.name
+            label: item.name,
+            active: item.active
           }))
         );
       })
@@ -693,7 +696,7 @@ function Schedule() {
 
                               <Select
                                 name="doctorId"
-                                options={doctors}
+                                options={onlyActive(doctors, doctorSelectedOption)}
                                 className="basic-multi-select"
                                 classNamePrefix="select"
                                 placeholder="Selecione"
@@ -767,7 +770,7 @@ function Schedule() {
                             <Form.Label>Plano de Saúde</Form.Label>
                             <Select
                               name="insurances"
-                              options={healthInsurances}
+                              options={onlyActive(healthInsurances, healthInsuranceSelectedOption)}
                               value={healthInsuranceSelectedOption}
                               className="basic-multi-select"
                               classNamePrefix="select"

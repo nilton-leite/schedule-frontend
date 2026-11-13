@@ -98,7 +98,9 @@ test.describe('Pacientes', () => {
     while ([0, 6].includes(amanha.getDay())) amanha.setDate(amanha.getDate() + 1);
     amanha.setHours(0, 0, 0, 0);
     const admin = await Api.as('admin');
-    await admin.createSchedule({ doctorId, patientId, data: amanha.toISOString(), time: '16:00:00', timeEnd: '16:10:00' });
+    // encaixe: a hora pode já estar ocupada por outro teste da Ana (1 paciente por hora — QA-004)
+    const criado = await admin.createSchedule({ doctorId, patientId, data: amanha.toISOString(), time: '16:00:00', timeEnd: '16:10:00', encaixe: true });
+    expect(criado.body.statusCode, JSON.stringify(criado.body)).toBe(200);
     await admin.dispose();
 
     const agenda = new AgendaPage(page);

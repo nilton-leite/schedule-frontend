@@ -11,7 +11,7 @@ test.describe('Agenda — criar agendamento pela tela', () => {
     // Dados diferentes por navegador (o Firefox repete o cenário na mesma execução).
     const firefox = info.project.name === 'firefox';
     const paciente = (await patientByFirstName(firefox ? 'Tiago' : 'Alice')).name;
-    const hora = firefox ? '10:30' : '10:00';
+    const hora = firefox ? '11:30' : '10:00'; // horas diferentes: a Ana atende 1 paciente por hora (QA-004)
     const agenda = new AgendaPage(page);
     const dia = nextDay(['seg', 'ter', 'quar', 'quin', 'sex']);
     await agenda.open();
@@ -23,7 +23,7 @@ test.describe('Agenda — criar agendamento pela tela', () => {
       medico: 'Dra. Ana Lima',
       data: br(dia),
       inicio: hora,
-      fim: firefox ? '10:40' : '10:10'
+      fim: firefox ? '11:40' : '10:10'
     });
     await agenda.salvarNovaConsulta();
     expect(await agenda.alerta()).toContain('Consulta cadastrada com sucesso');

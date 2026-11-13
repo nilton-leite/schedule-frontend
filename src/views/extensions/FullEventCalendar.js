@@ -8,6 +8,7 @@ import timeGrid from '@fullcalendar/timegrid';
 import bootstrapPlugin from '@fullcalendar/bootstrap';
 import allLocales from '@fullcalendar/core/locales-all';
 import { ENDPOINT } from '../../config/constant';
+import { onlyActive } from '../../config/options';
 import withReactContent from 'sweetalert2-react-content';
 import { registerLocale } from 'react-datepicker';
 import ptBR from 'date-fns/locale/pt-BR';
@@ -359,7 +360,8 @@ const FullEventCalendar = () => {
         setHealthInsurances(
           response.data.response.map((item) => ({
             value: item.healthInsuranceId,
-            label: item.name
+            label: item.name,
+            active: item.active
           }))
         );
       })
@@ -498,19 +500,24 @@ const FullEventCalendar = () => {
 
   const submitUpdate = async (updateId, updatedData) => {
     setIsDisabled(true);
-    if (updatedData.data != null && updatedData.data !== '' && 
-        updatedData.time != null && updatedData.time !== '' && 
-        updatedData.timeEnd != null && updatedData.timeEnd !== '' && 
-        updatedData.statusId != null && updatedData.statusId !== '' && 
-        updatedData.healthInsuranceId != null && updatedData.healthInsuranceId !== '' && updatedData.healthInsuranceId !== null) {
-          const updateForm = { 
-            statusId: updatedData.statusId.value, 
-            obs: updatedData.obs, 
-            hasHealthInsurance: updatedData.healthInsuranceId.value !== '' && updatedData.healthInsuranceId.value !== null ? true : false, 
-            healthInsuranceId: updatedData.healthInsuranceId.value, 
-            data: updatedData.data, 
-            time: updatedData.time, 
-            timeEnd: updatedData.timeEnd 
+    // Plano de saúde é OPCIONAL (consulta particular sem plano). Antes a ficha exigia um plano para salvar
+    // qualquer alteração, inclusive só confirmar/cancelar (QA-010).
+    const plan =
+      updatedData.healthInsuranceId && updatedData.healthInsuranceId.value != null && updatedData.healthInsuranceId.value !== ''
+        ? updatedData.healthInsuranceId
+        : null;
+    if (updatedData.data != null && updatedData.data !== '' &&
+        updatedData.time != null && updatedData.time !== '' &&
+        updatedData.timeEnd != null && updatedData.timeEnd !== '' &&
+        updatedData.statusId != null && updatedData.statusId !== '' && updatedData.statusId.value != null) {
+          const updateForm = {
+            statusId: updatedData.statusId.value,
+            obs: updatedData.obs,
+            hasHealthInsurance: Boolean(plan),
+            ...(plan ? { healthInsuranceId: plan.value } : {}),
+            data: updatedData.data,
+            time: updatedData.time,
+            timeEnd: updatedData.timeEnd
           };
           await axios
             .patch(`${ENDPOINT.api}schedules/${updateId}`, updateForm, ENDPOINT.config)
@@ -536,7 +543,7 @@ const FullEventCalendar = () => {
               setIsDisabled(false);
             });
     } else {
-      sweetAlertHandler({ title: 'Poxa...', text: 'Preencha todos os campos para continuar.', icon: 'error', showCloseButton: true });
+      sweetAlertHandler({ title: 'Poxa...', text: 'Preencha data, hora inicial, hora final e situação para continuar.', icon: 'error', showCloseButton: true });
       setIsDisabled(false);
     }
   };
@@ -684,7 +691,8 @@ const FullEventCalendar = () => {
         setDoctors(
           response.data.response.map((item) => ({
             value: item.doctorId,
-            label: item.name
+            label: item.name,
+            active: item.active
           }))
         );
         setDoctorsAux(response.data.response);
@@ -1171,7 +1179,8 @@ const FullEventCalendar = () => {
                     <Col lg={6} className="p-2">
                       <span className="modal-title">Retorno?</span>
                       <br />
-                      {!modalData.hasFirstQuery ? 'Sim' : 'Não'}
+                      {/* Mesmo significado do cadastro ("Retorno? Sim" grava hasFirstQuery = true). Antes estava invertido (QA-011). */}
+                      {modalData.hasFirstQuery ? 'Sim' : 'Não'}
                     </Col>{' '}
                     <Col lg={6} className="p-2">
                       <span className="modal-title">Observações</span>
@@ -1272,7 +1281,7 @@ const FullEventCalendar = () => {
                           <Form.Label>Plano de Saúde</Form.Label>
                           <Select
                             name="modalInsurances"
-                            options={healthInsurances}
+                            options={onlyActive(healthInsurances, healthInsuranceModalSelectedOption)}
                             value={healthInsuranceModalSelectedOption}
                             className="basic-multi-select"
                             classNamePrefix="select"
@@ -1474,7 +1483,7 @@ const FullEventCalendar = () => {
 
                             <Select
                               name="doctorId"
-                              options={doctors}
+                              options={onlyActive(doctors)}
                               className="basic-multi-select"
                               classNamePrefix="select"
                               placeholder="Selecione"
@@ -1548,7 +1557,7 @@ const FullEventCalendar = () => {
                             <Form.Label>Plano de Saúde</Form.Label>
                             <Select
                               name="insurances"
-                              options={healthInsurances}
+                              options={onlyActive(healthInsurances)}
                               value={healthInsuranceSelectedOption}
                               className="basic-multi-select"
                               classNamePrefix="select"

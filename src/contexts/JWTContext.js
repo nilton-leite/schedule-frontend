@@ -5,6 +5,7 @@ import axios from 'axios';
 import accountReducer from '../store/accountReducer';
 import Loader from '../components/Loader/Loader';
 import { ENDPOINT } from '../config/constant';
+import { installEncaixeInterceptor } from '../config/encaixe';
 
 const initialState = {
   isLoggedIn: false,
@@ -141,6 +142,12 @@ export const JWTProvider = ({ children }) => {
     );
     return () => axios.interceptors.response.eject(interceptor);
   }, [refreshUser]);
+
+  // Pergunta de encaixe quando o horário do médico está cheio (QA-004).
+  useEffect(() => {
+    const id = installEncaixeInterceptor();
+    return () => axios.interceptors.response.eject(id);
+  }, []);
 
   // if (!state.isInitialised) {
   //   return <Loader />;

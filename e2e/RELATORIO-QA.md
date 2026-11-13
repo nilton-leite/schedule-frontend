@@ -16,7 +16,17 @@ causa descrita (conferido um a um).
 | 13/11 | Agenda: faixa "A agenda pode estar incompleta" com "Tentar de novo" quando agenda, médicos, situações, tipos ou planos não carregam; marcação bloqueada até recarregar (`FullEventCalendar.js`) | QA-020 |
 | 13/11 | Login: limite por CPF (5 erros em 15 min bloqueiam só aquele CPF; login certo zera — `LoginAttemptsService`), limite por IP subiu de 10 para 60/min; CPF aceito com pontuação; mensagens distintas na tela para senha errada, “aguarde”, sem conexão e sistema indisponível | QA-013, QA-019, QA-021 |
 
-**Fase C1 (alta) concluída.** Pendentes: C2 (agenda) e C3 (cadastros e ajustes).
+**Fase C1 (alta) concluída.**
+
+| Data | Correção (C2, branch `c2-agenda`) | Bugs resolvidos |
+|---|---|---|
+| 13/11 | "Retorno?" com o mesmo significado do cadastro na ficha e no histórico do paciente (este lia um campo inexistente e mostrava sempre "Sim") | QA-011 |
+| 13/11 | Ficha: plano opcional; tirar o plano limpa o vínculo na API | QA-010 |
+| 13/11 | Listas de cadastro só com médicos/planos ativos (`config/options.js`); a ficha mantém o plano atual marcado "(desativado)" | QA-006, QA-009 |
+| 13/11 | `AuthGuard` espera a sessão carregar antes de decidir (F5/link direto mantém a tela) | QA-014 |
+| 13/11 | Encaixe: API responde 409 quando a hora do médico atingiu "pacientes por hora" (canceladas não contam); a tela pergunta e reenvia com `encaixe=true` (`config/encaixe.js`) | QA-004 |
+
+**Fase C2 concluída.** Pendente: C3 (cadastros e ajustes).
 
 ## Resumo executivo
 - **O fluxo principal funciona**: login por perfil, criar consulta pela agenda, vê-la no calendário, confirmar pela

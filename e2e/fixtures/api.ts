@@ -80,6 +80,7 @@ export class Api {
     hasHealthInsurance?: boolean;
     healthInsuranceId?: number;
     hasFirstQuery?: boolean;
+    encaixe?: boolean; // confirma encaixe acima de 'pacientes por hora' (QA-004)
   }) {
     return this.post('schedules', {
       statusId: 2,

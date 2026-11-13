@@ -1,6 +1,5 @@
 import { test, expect } from '@playwright/test';
 import { Api } from '../fixtures/api';
-import { knownBug } from '../fixtures/bug';
 import { idOf, scheduleById, lastScheduleOf, query } from '../fixtures/db';
 import { addDays, asFrontSends, nextDay, today, iso } from '../fixtures/dates';
 
@@ -126,12 +125,32 @@ test.describe('ausência temporária do médico', () => {
 });
 
 test.describe('conflito e capacidade', () => {
-  test('QA-004: mesmo médico, mesmo horário, acima de "pacientes por hora" é recusado', async () => {
-    knownBug('QA-004', 'não há checagem de conflito nem do patientsPerHour do médico (Ana = 1)');
+  test('QA-004: acima de "pacientes por hora" pede confirmação de encaixe; confirmado, grava', async () => {
+    // Ana atende 1 paciente por hora. Decisão da clínica: avisar e permitir encaixe com confirmação.
     const qua = nextDay(['quar'], 5);
     expect(aceito(await criar(ana, pac.Fábio, qua, '15:00'))).toBe(true);
-    const segundo = await criar(ana, pac.Giovana, qua, '15:00');
-    expect(aceito(segundo)).toBe(false);
+    const mesmaHora = await criar(ana, pac.Giovana, qua, '15:40'); // mesma hora do relógio (15h–16h)
+    expect(mesmaHora.body.statusCode).toBe(409);
+    expect(String(mesmaHora.body.response)).toMatch(/Já há 1 paciente com Dra\. Ana Lima entre 15h e 16h \(limite: 1 por hora\)/);
+    expect(aceito(await criar(ana, pac.Giovana, qua, '15:40', { encaixe: true }))).toBe(true);
+    // Outra hora: sem pergunta.
+    expect(aceito(await criar(ana, pac.Giovana, qua, '16:00'))).toBe(true);
+  });
+
+  test('QA-004: consulta cancelada não ocupa a vaga; mover para hora cheia também pergunta', async () => {
+    const qui = nextDay(['quin'], 5);
+    expect(aceito(await criar(ana, pac.Fábio, qui, '16:00'))).toBe(true);
+    const cancelada = await lastScheduleOf(pac.Fábio);
+    await api.patch(`schedules/${cancelada}`, { statusId: 3 });
+    expect(aceito(await criar(ana, pac.Giovana, qui, '16:20'))).toBe(true); // a cancelada não conta
+
+    expect(aceito(await criar(ana, pac.Heitor, qui, '17:00'))).toBe(true);
+    const id = await lastScheduleOf(pac.Heitor);
+    const mover = await api.patch(`schedules/${id}`, { time: '16:40:00', timeEnd: '16:50:00' });
+    expect(mover.body.statusCode).toBe(409);
+    expect((await scheduleById(id)).time.slice(0, 5)).toBe('17:00'); // não mudou sem confirmar
+    const confirmado = await api.patch(`schedules/${id}`, { time: '16:40:00', timeEnd: '16:50:00', encaixe: true });
+    expect(confirmado.body.statusCode).toBe(200);
   });
 });
 
