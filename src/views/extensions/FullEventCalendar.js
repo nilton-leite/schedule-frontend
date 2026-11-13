@@ -1,5 +1,5 @@
-import React, { useState, useEffect, useContext } from 'react';
-import { Row, Col, Button, Modal, Form, Table, Card, Badge, Tooltip } from 'react-bootstrap';
+import React, { useState, useEffect, useContext, useRef } from 'react';
+import { Row, Col, Button, Modal, Form, Table, Card, Badge, Tooltip, Alert } from 'react-bootstrap';
 import InputMask from 'react-input-mask';
 import FullCalendar from '@fullcalendar/react';
 import dayGridPlugin from '@fullcalendar/daygrid';
@@ -84,6 +84,18 @@ const FullEventCalendar = () => {
   const [canChange, setCanChange] = useState(true);
   const [load, setLoad] = useState(false);
   const [showPDF, setShowPDF] = useState(false);
+  // Falhas ao carregar dados essenciais (QA-020): antes iam só para o console e a grade aparecia vazia,
+  // como se o dia estivesse livre. Cada carga registra/limpa a própria falha.
+  const [loadErrors, setLoadErrors] = useState({});
+  const lastAgendaRequest = useRef({ endpoint: 'schedules/only', id: null });
+  const setLoadError = (key, message) =>
+    setLoadErrors((prev) => {
+      const next = { ...prev };
+      if (message) next[key] = message;
+      else delete next[key];
+      return next;
+    });
+  const hasLoadError = Object.keys(loadErrors).length > 0;
 
   useEffect(() => {
     getStatus();
@@ -343,6 +355,7 @@ const FullEventCalendar = () => {
     await axios
       .get(`${ENDPOINT.api}health-insurance`, ENDPOINT.config)
       .then((response) => {
+        setLoadError('planos', null);
         setHealthInsurances(
           response.data.response.map((item) => ({
             value: item.healthInsuranceId,
@@ -351,15 +364,18 @@ const FullEventCalendar = () => {
         );
       })
       .catch((err) => {
+        setLoadError('planos', 'Não foi possível carregar os planos de saúde.');
         console.error('Não foi possível puxar os Planos de Saúde.' + err);
       });
   };
 
   const getDoctorSchedules = async (fullendpoint, id) => {
     // setLoad(true);
+    lastAgendaRequest.current = { endpoint: fullendpoint, id };
     await axios
       .get(`${ENDPOINT.api}${fullendpoint}`, ENDPOINT.config)
       .then(async (response) => {
+        setLoadError('agenda', null);
         setDoctorSchedules(assembleFullSchedule(response.data.response));
         
         if (id)  {
@@ -405,6 +421,7 @@ const FullEventCalendar = () => {
       })
       .catch((err) => {
         console.error('Não foi possível puxar os Médicos.' + err);
+        setLoadError('agenda', 'Não foi possível carregar os agendamentos.');
         // setLoad(false);
       });
   };
@@ -413,6 +430,7 @@ const FullEventCalendar = () => {
     await axios
       .get(`${ENDPOINT.api}status`, ENDPOINT.config)
       .then(async (response) => {
+        setLoadError('situacoes', null);
         await setStatusSelection(
           response.data.response.map((item) => ({
             value: item.statusId,
@@ -421,6 +439,7 @@ const FullEventCalendar = () => {
         );
       })
       .catch((err) => {
+        setLoadError('situacoes', 'Não foi possível carregar as situações.');
         console.error('Não foi possível puxar os Status.' + err);
       });
   };
@@ -523,6 +542,15 @@ const FullEventCalendar = () => {
   };
 
   const newSchedule = (args) => {
+    if (hasLoadError) {
+      sweetAlertHandler({
+        title: 'Agenda incompleta',
+        text: 'Alguns dados da agenda não carregaram. Clique em "Tentar de novo" antes de marcar, para não marcar por cima de outro paciente.',
+        icon: 'warning',
+        showCloseButton: true
+      });
+      return;
+    }
     getPatients();
     setCalendarDate(args.dateStr);
     if (args.dateStr.length > 11) {
@@ -586,6 +614,15 @@ const FullEventCalendar = () => {
     setSchedsToday(filteredItems);
   };
 
+  /** "Tentar de novo": recarrega os dados essenciais e a última visão da agenda (todas, um médico ou a minha). */
+  const reloadAll = () => {
+    getStatus();
+    getDoctors();
+    getScheduleTypes();
+    getHealthInsurances();
+    getDoctorSchedules(lastAgendaRequest.current.endpoint, lastAgendaRequest.current.id);
+  };
+
   const getSchedules = async () => {
     // setLoad(true);
     await axios
@@ -625,6 +662,7 @@ const FullEventCalendar = () => {
     await axios
       .get(`${ENDPOINT.api}scheduleType`, ENDPOINT.config)
       .then((response) => {
+        setLoadError('tipos', null);
         setScheduleTypes(
           response.data.response.map((item) => ({
             value: item.scheduleTypeId,
@@ -633,6 +671,7 @@ const FullEventCalendar = () => {
         );
       })
       .catch((err) => {
+        setLoadError('tipos', 'Não foi possível carregar os tipos de agendamento.');
         console.error('Não foi possível puxar os Pacientes.' + err);
       });
   };
@@ -641,6 +680,7 @@ const FullEventCalendar = () => {
     await axios
       .get(`${ENDPOINT.api}doctors`, ENDPOINT.config)
       .then(async (response) => {
+        setLoadError('medicos', null);
         setDoctors(
           response.data.response.map((item) => ({
             value: item.doctorId,
@@ -650,6 +690,7 @@ const FullEventCalendar = () => {
         setDoctorsAux(response.data.response);
       })
       .catch((err) => {
+        setLoadError('medicos', 'Não foi possível carregar os médicos.');
         console.error('Não foi possível puxar os Médicos.' + err);
       });
   };
@@ -1039,6 +1080,17 @@ const FullEventCalendar = () => {
               </Col>
             </Row>
             <hr />
+            {hasLoadError && (
+              <Alert variant="danger" role="alert" className="d-flex flex-wrap align-items-center justify-content-between">
+                <span>
+                  <strong>A agenda pode estar incompleta.</strong> {Object.values(loadErrors).join(' ')} Não marque horários até
+                  recarregar.
+                </span>
+                <Button size="sm" variant="light" onClick={reloadAll}>
+                  Tentar de novo
+                </Button>
+              </Alert>
+            )}
             <FullCalendar
               defaultView="timeGridDay"
               initialView="timeGridDay"
