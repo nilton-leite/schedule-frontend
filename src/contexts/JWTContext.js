@@ -1,6 +1,6 @@
-import React, { createContext, useEffect, useReducer } from 'react';
+import React, { createContext, useCallback, useEffect, useReducer } from 'react';
 
-import { ACCOUNT_INITIALISE, LOGIN, LOGOUT } from '../store/actions';
+import { ACCOUNT_INITIALISE, LOGIN, LOGOUT, USER_REFRESH } from '../store/actions';
 import axios from 'axios';
 import accountReducer from '../store/accountReducer';
 import Loader from '../components/Loader/Loader';
@@ -35,7 +35,8 @@ const setSession = (access_token, userNow) => {
 const JWTContext = createContext({
   ...initialState,
   login: () => Promise.resolve(),
-  logout: () => Promise.resolve()
+  logout: () => Promise.resolve(),
+  refreshUser: () => Promise.resolve()
 });
 
 export const JWTProvider = ({ children }) => {
@@ -60,6 +61,18 @@ export const JWTProvider = ({ children }) => {
     dispatch({ type: LOGOUT });
   };
 
+  // Relê o usuário logado na API (perfil atualizado). O menu e as telas de admin se ajustam sem recarregar a página.
+  const refreshUser = useCallback(async () => {
+    const userId = window.localStorage.getItem('userId');
+    if (!userId || !window.localStorage.getItem('access_token')) return;
+    try {
+      const response = await axios.get(`${ENDPOINT.api}users/${userId}`, ENDPOINT.config);
+      dispatch({ type: USER_REFRESH, payload: { user: response.data.response } });
+    } catch (err) {
+      console.error(err);
+    }
+  }, []);
+
   useEffect(() => {
     const init = async () => {
       try {
@@ -70,11 +83,13 @@ export const JWTProvider = ({ children }) => {
           const updatedUser = usernew.data.response;
           await setSession(access_token, updatedUser);
 
+          // O reducer lê "user" (antes ia como "updatedUser" e o usuário ficava vazio após recarregar a página).
+          // O perfil (role) vem daqui, relido da API a cada carregamento.
           dispatch({
             type: ACCOUNT_INITIALISE,
             payload: {
               isLoggedIn: true,
-              updatedUser
+              user: updatedUser
             }
           });
         } else {
@@ -82,7 +97,7 @@ export const JWTProvider = ({ children }) => {
             type: ACCOUNT_INITIALISE,
             payload: {
               isLoggedIn: false,
-              updatedUser: null
+              user: null
             }
           });
         }
@@ -94,7 +109,7 @@ export const JWTProvider = ({ children }) => {
           type: ACCOUNT_INITIALISE,
           payload: {
             isLoggedIn: false,
-            updatedUser: null
+            user: null
           }
         });
       }
@@ -116,17 +131,22 @@ export const JWTProvider = ({ children }) => {
           setSession(null);
           dispatch({ type: LOGOUT });
         }
+        // 403 = o perfil não permite a ação (ex.: outro admin mudou o perfil deste usuário): relê o perfil
+        // para o menu deixar de oferecer o que não é mais permitido.
+        if (status === 403 && !url.includes('/users/')) {
+          refreshUser();
+        }
         return Promise.reject(error);
       }
     );
     return () => axios.interceptors.response.eject(interceptor);
-  }, []);
+  }, [refreshUser]);
 
   // if (!state.isInitialised) {
   //   return <Loader />;
   // }
 
-  return <JWTContext.Provider value={{ ...state, login, logout }}>{children}</JWTContext.Provider>;
+  return <JWTContext.Provider value={{ ...state, login, logout, refreshUser }}>{children}</JWTContext.Provider>;
 };
 
 export default JWTContext;

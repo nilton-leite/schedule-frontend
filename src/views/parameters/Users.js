@@ -5,8 +5,18 @@ import { Row, Col, Card, Button, Collapse, Form, Table } from 'react-bootstrap';
 import Swal from 'sweetalert2';
 import withReactContent from 'sweetalert2-react-content';
 import { ENDPOINT } from '../../config/constant';
+import { ROLES, ROLE_LABELS } from '../../config/roles';
+import useAuth from '../../hooks/useAuth';
+
+// Mensagem de erro vinda da API (ex.: "O sistema precisa de pelo menos um administrador ativo.").
+const apiErrorMessage = (err, fallback) => {
+  const message = err && err.response && err.response.data && err.response.data.message;
+  if (Array.isArray(message)) return message.join(' ');
+  return typeof message === 'string' && message ? message : fallback;
+};
 
 function User() {
+  const { refreshUser } = useAuth();
   const [isOpen, setIsOpen] = useState(false);
   const model = {
     userId: '',
@@ -15,7 +25,8 @@ function User() {
     phone: '',
     dateBirth: '',
     password: '',
-    active: true
+    active: true,
+    role: ROLES.RECEPCAO
   };
   const [user, setUser] = useState(model);
   const [users, setUsers] = useState([]);
@@ -75,7 +86,8 @@ function User() {
       phone: editItem.phone,
       dateBirth: editItem.dateBirth.split('-').reverse().join(''),
       password: '',
-      active: editItem.active
+      active: editItem.active,
+      role: editItem.role || ROLES.RECEPCAO
     });
   };
 
@@ -84,6 +96,8 @@ function User() {
     const updatedData = {};
 
     for (const key in user) {
+      // Senha em branco na edição = manter a atual (antes ia "" e a API recusava a alteração inteira).
+      if (key === 'password' && !user.password) continue;
       if (user[key] !== filteredData[0][key]) {
         if (key !== 'dateBirth') {
           if (key === 'phone') {
@@ -108,7 +122,8 @@ function User() {
           document: user.document.replace(/\D/g, ''),
           phone: user.phone.replace(/\D/g, ''),
           dateBirth: user.dateBirth.split('/').reverse().join('-'),
-          password: user.password
+          password: user.password,
+          role: user.role
         },
         ENDPOINT.config
       )
@@ -127,7 +142,12 @@ function User() {
         }
       })
       .catch((err) => {
-        sweetAlertHandler({ title: 'Poxa...', text: 'Não foi possivel cadastrar.', icon: 'error', showCloseButton: true });
+        sweetAlertHandler({
+          title: 'Poxa...',
+          text: apiErrorMessage(err, 'Não foi possivel cadastrar.'),
+          icon: 'error',
+          showCloseButton: true
+        });
         console.error('Não foi possível cadastrar o Usuário.' + err);
       });
   };
@@ -146,13 +166,24 @@ function User() {
           setUser(model);
           setUpdatingData(false);
           setIsOpen(false);
-          getUsers();
+          // Alterou o próprio cadastro (ex.: perfil): atualiza o menu na hora. Se deixou de ser admin,
+          // o AdminGuard leva para a agenda.
+          if (String(updateId) === window.localStorage.getItem('userId')) {
+            refreshUser();
+          } else {
+            getUsers();
+          }
         } else {
           sweetAlertHandler({ title: 'Poxa...', text: 'Não foi possivel alterar.', icon: 'error', showCloseButton: true });
         }
       })
       .catch((err) => {
-        sweetAlertHandler({ title: 'Poxa...', text: 'Não foi possivel alterar.', icon: 'error', showCloseButton: true });
+        sweetAlertHandler({
+          title: 'Poxa...',
+          text: apiErrorMessage(err, 'Não foi possivel alterar.'),
+          icon: 'error',
+          showCloseButton: true
+        });
         console.error('Não foi possível alterar o Usuário.' + err);
       });
   };
@@ -217,6 +248,23 @@ function User() {
                                   <span className="ml-2">{user.active ? 'Cadastro Ativo' : 'Cadastro Inativo'}</span>
                                 </Form.Label>
                               </div>
+                            </Form.Group>
+                          </Col>
+                        </Row>
+                        <Row>
+                          <Col lg={3}>
+                            <Form.Group controlId="role">
+                              <Form.Label>
+                                Perfil<span className="mandatory">*</span>
+                              </Form.Label>
+                              <Form.Control as="select" name="role" value={user.role} onChange={handleChange}>
+                                {Object.values(ROLES).map((r) => (
+                                  <option key={r} value={r}>
+                                    {ROLE_LABELS[r]}
+                                  </option>
+                                ))}
+                              </Form.Control>
+                              <Form.Text className="text-muted">Administrador acessa Parâmetros e Usuários.</Form.Text>
                             </Form.Group>
                           </Col>
                         </Row>
@@ -346,6 +394,7 @@ function User() {
                     <th>Nome</th>
                     <th>Data de Nascimento</th>
                     <th>Telefone</th>
+                    <th>Perfil</th>
                     <th>
                       <center>Situação</center>
                     </th>
@@ -365,6 +414,7 @@ function User() {
                       <td>
                         ({item.phone.toString().substr(0, 2)}) {item.phone.toString().substr(2, 5)}-{item.phone.toString().substr(7)}
                       </td>
+                      <td>{ROLE_LABELS[item.role] || item.role}</td>
                       <td>
                         <Form.Control
                           type="checkbox"

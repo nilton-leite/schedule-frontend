@@ -6,6 +6,7 @@ import AdminLayout from './layouts/AdminLayout';
 
 import GuestGuard from './components/Auth/GuestGuard';
 import AuthGuard from './components/Auth/AuthGuard';
+import AdminGuard from './components/Auth/AdminGuard';
 
 import { BASE_URL } from './config/constant';
 
@@ -69,6 +70,7 @@ const routes = [
       },
       {
         exact: true,
+        guard: AdminGuard,
         path: '/parametros/especialidades',
         component: lazy(() => import('./views/parameters/Specialties'))
       },
@@ -79,11 +81,13 @@ const routes = [
       },
       {
         exact: true,
+        guard: AdminGuard,
         path: '/parametros/planos',
         component: lazy(() => import('./views/parameters/HI'))
       },
       {
         exact: true,
+        guard: AdminGuard,
         path: '/parametros/usuarios',
         component: lazy(() => import('./views/parameters/Users'))
       },

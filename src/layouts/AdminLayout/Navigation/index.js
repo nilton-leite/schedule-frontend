@@ -6,6 +6,8 @@ import useWindowSize from '../../../hooks/useWindowSize';
 import NavLogo from './NavLogo';
 import NavContent from './NavContent';
 import navigation from '../../../menu-items';
+import useAuth from '../../../hooks/useAuth';
+import { filterMenuByRole } from '../../../config/roles';
 
 import navImage1 from '../../../assets/images/nav-bg/navbar-img-1.jpg';
 import navImage2 from '../../../assets/images/nav-bg/navbar-img-2.jpg';
@@ -36,6 +38,9 @@ const Navigation = () => {
     layout6BackSize
   } = configContext.state;
   const windowSize = useWindowSize();
+  const { user } = useAuth();
+  // Menu conforme o perfil (ex.: Parâmetros só para administrador).
+  const menu = filterMenuByRole(navigation.items, user);
 
   // const scroll = () => {
   //     if (navFixedLayout && headerFixedLayout === false) {
@@ -165,14 +170,14 @@ const Navigation = () => {
   let navContent = (
     <div className={navBarClass.join(' ')}>
       <NavLogo />
-      <NavContent navigation={navigation.items} />
+      <NavContent navigation={menu} />
     </div>
   );
   if (windowSize.width < 992) {
     navContent = (
       <div className="navbar-wrapper">
         <NavLogo />
-        <NavContent navigation={navigation.items} />
+        <NavContent navigation={menu} />
       </div>
     );
   }

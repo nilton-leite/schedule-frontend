@@ -1,4 +1,4 @@
-import { ACCOUNT_INITIALISE, LOGIN, LOGOUT } from './actions';
+import { ACCOUNT_INITIALISE, LOGIN, LOGOUT, USER_REFRESH } from './actions';
 
 const accountReducer = (state, action) => {
   switch (action.type) {
@@ -16,6 +16,14 @@ const accountReducer = (state, action) => {
       return {
         ...state,
         isLoggedIn: true,
+        user
+      };
+    }
+    case USER_REFRESH: {
+      // Dados do usuário relidos da API (ex.: perfil alterado), sem mexer no login.
+      const { user } = action.payload;
+      return {
+        ...state,
         user
       };
     }

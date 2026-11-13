@@ -42,6 +42,8 @@ const menuItems = {
           id: 'params',
           title: 'Parâmetros',
           type: 'collapse',
+          // Só aparece para administradores (filtrado em Navigation pelo perfil do usuário).
+          roles: ['admin'],
           icon: 'feather icon-sliders',
           children: [
             {
