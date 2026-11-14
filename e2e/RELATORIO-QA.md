@@ -26,7 +26,19 @@ causa descrita (conferido um a um).
 | 13/11 | `AuthGuard` espera a sessão carregar antes de decidir (F5/link direto mantém a tela) | QA-014 |
 | 13/11 | Encaixe: API responde 409 quando a hora do médico atingiu "pacientes por hora" (canceladas não contam); a tela pergunta e reenvia com `encaixe=true` (`config/encaixe.js`) | QA-004 |
 
-**Fase C2 concluída.** Pendente: C3 (cadastros e ajustes).
+**Fase C2 concluída.**
+
+| Data | Correção (C3, branch `c2-agenda`) | Bugs resolvidos |
+|---|---|---|
+| 13/11 | Paciente: telefone já usado pede confirmação (mesma família) em vez de recusar; nos dados reais já há 127 telefones compartilhados por 271 pacientes | QA-016 |
+| 13/11 | Paciente: CPF já cadastrado é recusado (criar e editar) com o nome do outro paciente; nenhum duplicado nos dados reais (só 5 de 8.157 têm CPF) | QA-017 |
+| 13/11 | Busca de paciente sem diferenciar acentos (migration `Unaccent`) | QA-018 |
+| 13/11 | Nova Consulta diz o que falta preencher (agenda e Consultas) | QA-012 |
+| 13/11 | Escala do médico validada na API (fim depois do início, manhã antes da tarde, ao menos um período) | QA-024 (confirmado pelo código: nem a tela nem a API validavam) |
+| 13/11 | Lista de médicos e agenda toleram registro sem "criado por" (havia 2 agendamentos reais assim) | QA-001 |
+| 13/11 | Acessibilidade: zoom liberado no celular, `lang=pt-BR`, nomes nos botões de ícone e no filtro de médico — sem violações críticas | QA-022 (pendentes: contraste e links do menu, de severidade séria) |
+
+**Fase C3 concluída.** Todos os 25 bugs confirmados estão corrigidos, exceto os itens sérios (não críticos) de acessibilidade do QA-022.
 
 ## Resumo executivo
 - **O fluxo principal funciona**: login por perfil, criar consulta pela agenda, vê-la no calendário, confirmar pela

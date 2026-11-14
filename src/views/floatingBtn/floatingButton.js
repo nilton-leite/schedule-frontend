@@ -36,12 +36,14 @@ function FloatingButton() {
   return (
     <div style={styles.button}>
       {connected ? (
-        <Button className="btn-icon btn-rounded">
+        <Button className="btn-icon btn-rounded" aria-label="WhatsApp conectado" title="WhatsApp conectado">
           <i className="feather icon-toggle-right"></i>
         </Button>
       ) : (
         <Button
           className="btn-icon btn-warning btn-rounded"
+          aria-label="Conectar o WhatsApp"
+          title="Conectar o WhatsApp"
           onClick={() => {
             setIsModalOpen(true);
           }}

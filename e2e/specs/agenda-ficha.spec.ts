@@ -1,7 +1,6 @@
 import { test, expect } from '@playwright/test';
 import { AgendaPage } from '../pages/AgendaPage';
 import { Api } from '../fixtures/api';
-import { knownBug } from '../fixtures/bug';
 import { idOf, lastScheduleOf, patientByFirstName, query, scheduleById } from '../fixtures/db';
 import { addDays, asFrontSends, br, nextDay, today } from '../fixtures/dates';
 
@@ -99,14 +98,13 @@ test.describe('Agenda — ficha da consulta', () => {
     await expect(page.locator('.select__option', { hasText: 'Dr. Desligado Teste' })).toHaveCount(0);
   });
 
-  test('QA-012: cadastrar sem paciente mostra o que falta (não erro genérico)', async ({ page }) => {
-    knownBug('QA-012', 'sem validação no formulário; a API recusa e a tela diz só "Não foi possivel cadastrar."');
+  test('QA-012: cadastrar sem paciente diz o que falta (corrigido)', async ({ page }) => {
     const agenda = new AgendaPage(page);
     await agenda.open();
     await agenda.clicarHorario('09:30');
     await agenda.escolher(agenda.novaConsulta, 'Médico', 'Dra. Ana Lima');
     await agenda.salvarNovaConsulta();
-    expect(await agenda.alerta()).toMatch(/paciente/i);
+    expect(await agenda.alerta()).toBe('Preencha paciente para cadastrar a consulta.');
   });
 
   test('tirar o plano pela ficha transforma em particular e limpa o vínculo (QA-010)', async ({ page }) => {

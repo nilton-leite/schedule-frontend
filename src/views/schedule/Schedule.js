@@ -5,6 +5,7 @@ import Swal from 'sweetalert2';
 import withReactContent from 'sweetalert2-react-content';
 import { ENDPOINT } from '../../config/constant';
 import { onlyActive } from '../../config/options';
+import { camposFaltando } from '../../config/validarConsulta';
 import Select from 'react-select';
 import DatePicker from 'react-datepicker';
 import { registerLocale } from 'react-datepicker';
@@ -323,6 +324,18 @@ function Schedule() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    const falta = camposFaltando({
+      tipo: newSchedule.scheduleTypeId,
+      paciente: newSchedule.patientId,
+      medico: newSchedule.doctorId,
+      data: newSchedule.data,
+      inicio: newSchedule.time,
+      fim: newSchedule.timeEnd
+    });
+    if (falta) {
+      sweetAlertHandler({ title: 'Faltam dados', text: falta, icon: 'warning', showCloseButton: true });
+      return;
+    }
 
     await axios
       .post(
@@ -475,7 +488,7 @@ function Schedule() {
           handlePatientSelectChange({ value: response.data.response.patientId, label: response.data.response.name });
           setIsRegisterPatient(false);
         } else {
-          sweetAlertHandler({ title: 'Poxa...', text: 'Não foi possivel cadastrar.', icon: 'error', showCloseButton: true });
+          sweetAlertHandler({ title: 'Poxa...', text: response.data.message || 'Não foi possivel cadastrar.', icon: 'error', showCloseButton: true });
         }
       })
       .catch((err) => {

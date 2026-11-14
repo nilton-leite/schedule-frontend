@@ -42,6 +42,31 @@ test.describe('Médicos', () => {
   });
 });
 
+test.describe('Médicos: robustez e escala', () => {
+  test('QA-024: escala com fim antes do início é recusada com mensagem clara', async () => {
+    const carla = await idOf('doctor', 'Dra. Carla Souza');
+    const [d] = await query<{ workDays: Record<string, unknown> }>(`SELECT "workDays" FROM doctor WHERE "doctorId" = $1`, [carla]);
+    const invalida = { ...d.workDays, sab: { status: true, initMorning: '12:00:00', finalMorning: '08:00:00', initAfternoon: '', finalAfternoon: '' } };
+    const r = await api.patch(`doctors/${carla}`, { workDays: invalida });
+    expect(r.body.statusCode, JSON.stringify(r.body)).toBe(400);
+    expect(r.body.response).toBe('Escala de sábado: o fim da manhã precisa ser depois do início.');
+    const [depois] = await query<{ workDays: { sab: { initMorning: string } } }>(`SELECT "workDays" FROM doctor WHERE "doctorId" = $1`, [carla]);
+    expect(depois.workDays.sab.initMorning).toBe('08:00:00'); // nada gravado
+  });
+
+  test('QA-001: médico sem "criado por" não derruba a lista de médicos', async () => {
+    const carla = await idOf('doctor', 'Dra. Carla Souza');
+    await query(`UPDATE doctor SET "createdBy" = NULL, "lastChangedBy" = NULL WHERE "doctorId" = $1`, [carla]);
+    try {
+      const r = await api.get('doctors');
+      expect(r.status).toBe(200);
+      expect(r.body.response.map((x: { name: string }) => x.name)).toContain('Dra. Carla Souza');
+    } finally {
+      await query(`UPDATE doctor SET "createdBy" = 1, "lastChangedBy" = 1 WHERE "doctorId" = $1`, [carla]);
+    }
+  });
+});
+
 test.describe('Parâmetros refletem na agenda', () => {
   test.use({ storageState: 'e2e/.auth/admin.json' });
 

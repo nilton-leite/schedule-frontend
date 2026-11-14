@@ -33,7 +33,7 @@ const MainCard = (props) => {
     cardHeaderRight = (
       <div className={'card-header-right ' + optionClass}>
         <Dropdown alignRight={true} className="btn-group card-option">
-          <Dropdown.Toggle id="dropdown-basic" className="btn-icon">
+          <Dropdown.Toggle id="dropdown-basic" className="btn-icon" aria-label="Opções do cartão">
             <i className="feather icon-more-horizontal" />
           </Dropdown.Toggle>
           <Dropdown.Menu as="ul" className="list-unstyled card-option">

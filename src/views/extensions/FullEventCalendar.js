@@ -9,6 +9,7 @@ import bootstrapPlugin from '@fullcalendar/bootstrap';
 import allLocales from '@fullcalendar/core/locales-all';
 import { ENDPOINT } from '../../config/constant';
 import { onlyActive } from '../../config/options';
+import { camposFaltando } from '../../config/validarConsulta';
 import withReactContent from 'sweetalert2-react-content';
 import { registerLocale } from 'react-datepicker';
 import ptBR from 'date-fns/locale/pt-BR';
@@ -338,8 +339,8 @@ const FullEventCalendar = () => {
               reason: temporaryabs.temporary.reasonTemporaryAbsence.description,
               createdAt: temporaryabs.createdAt,
               updatedAt: temporaryabs.updatedAt,
-              createdBy: temporaryabs.temporary.users.name,
-              updatedBy: temporaryabs.temporary.userChanged.name,
+              createdBy: temporaryabs.temporary.users ? temporaryabs.temporary.users.name : '',
+              updatedBy: temporaryabs.temporary.userChanged ? temporaryabs.temporary.userChanged.name : '',
             }
           });
         }
@@ -824,8 +825,20 @@ const FullEventCalendar = () => {
   };
 
   const handleSubmit = async (e) => {
-    setIsDisabled(true);
     e.preventDefault();
+    const falta = camposFaltando({
+      tipo: newFormSchedule.scheduleTypeId,
+      paciente: newFormSchedule.patientId,
+      medico: newFormSchedule.doctorId !== '' && newFormSchedule.doctorId != null ? newFormSchedule.doctorId : doctorSelectedOption && doctorSelectedOption.value,
+      data: scheduleDate,
+      inicio: newFormSchedule.time,
+      fim: newFormSchedule.timeEnd
+    });
+    if (falta) {
+      sweetAlertHandler({ title: 'Faltam dados', text: falta, icon: 'warning', showCloseButton: true });
+      return;
+    }
+    setIsDisabled(true);
     await axios
       .post(
         `${ENDPOINT.api}schedules`,
@@ -1075,6 +1088,7 @@ const FullEventCalendar = () => {
                   <Form.Group controlId="doctorId">
                     <Select
                       name="doctorId"
+                      aria-label="Filtrar a agenda por médico"
                       options={doctors}
                       className="basic-multi-select"
                       classNamePrefix="select"

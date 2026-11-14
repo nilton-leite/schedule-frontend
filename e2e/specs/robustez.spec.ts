@@ -85,7 +85,9 @@ test.describe('Acessibilidade (axe) — violações críticas', () => {
       await page.goto(url);
       await page.waitForTimeout(1500);
       const r = await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa']).analyze();
-      const resumo = r.violations.map((v) => `${v.impact} · ${v.id} (${v.nodes.length}) · ${v.help}`).join('\n');
+      const resumo = r.violations
+        .map((v) => `${v.impact} · ${v.id} (${v.nodes.length}) · ${v.help}\n    ${v.nodes.slice(0, 3).map((n) => n.target.join(' ')).join('\n    ')}`)
+        .join('\n');
       await info.attach(`axe-${nome}`, { body: resumo || 'sem violações', contentType: 'text/plain' });
       console.log(`[axe ${nome}]\n${resumo}`);
       const criticas = r.violations.filter((v) => v.impact === 'critical');

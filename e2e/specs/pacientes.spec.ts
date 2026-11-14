@@ -1,6 +1,5 @@
 import { test, expect, Page } from '@playwright/test';
 import { Api } from '../fixtures/api';
-import { knownBug } from '../fixtures/bug';
 import { cpfValido, mascararCpf } from '../fixtures/cpf';
 import { query } from '../fixtures/db';
 import { AgendaPage } from '../pages/AgendaPage';
@@ -61,25 +60,46 @@ test.describe('Pacientes', () => {
     await expect(page.locator('.swal2-popup')).toContainText('CPF Inválido');
   });
 
-  test('QA-016: dois pacientes da mesma família podem ter o mesmo telefone (ex.: mãe e bebê)', async () => {
-    knownBug('QA-016', 'o cadastro recusa telefone já usado por outro paciente');
+  test('QA-016: mesmo telefone (mãe e bebê) pede confirmação; confirmado, cadastra', async () => {
     const fone = '41933330001';
     const mae = await novoPaciente({ name: 'Mãe Família QA', phone: fone, document: cpfValido(111) });
     expect(criado(mae)).toBe(true);
-    const bebe = await novoPaciente({ name: 'Bebê Família QA', phone: fone });
-    expect(criado(bebe), JSON.stringify(bebe.body)).toBe(true);
+    const semConfirmar = await novoPaciente({ name: 'Bebê Família QA', phone: fone });
+    expect(semConfirmar.body.statusCode).toBe(409);
+    expect(String(semConfirmar.body.response)).toContain('Este telefone já é do paciente Mãe Família QA');
+    const confirmado = await novoPaciente({ name: 'Bebê Família QA', phone: fone, telefoneCompartilhado: true });
+    expect(criado(confirmado), JSON.stringify(confirmado.body)).toBe(true);
   });
 
-  test('QA-017: CPF já cadastrado não pode ser usado em outro paciente', async () => {
-    knownBug('QA-017', 'não há checagem de CPF duplicado (só de telefone)');
+  test('QA-016 na tela: "Telefone já cadastrado" → "Cadastrar mesmo assim"', async ({ page }, info) => {
+    const fone = info.project.name === 'firefox' ? '41933330012' : '41933330011';
+    expect(criado(await novoPaciente({ name: `Pai Família QA ${fone}`, phone: fone }))).toBe(true);
+    await abrirPacientes(page);
+    await page.getByRole('button', { name: /Cadastrar/ }).first().click();
+    await page.locator('input[name="name"]').fill(`Filho Família QA ${fone}`);
+    await page.locator('input[name="phone"]').fill(fone);
+    await page.locator('input[name="street"]').fill('Rua QA');
+    await page.locator('input[name="number"]').fill('1');
+    const planos = page.locator('.form-group', { has: page.locator('label', { hasText: /^Planos de Saúde/ }) });
+    await planos.locator('.select__control').click();
+    await page.locator('.select__option', { hasText: 'Unimed QA' }).click();
+    await page.getByRole('button', { name: 'Cadastrar', exact: true }).last().click();
+    await expect(page.locator('.swal2-popup')).toContainText('Telefone já cadastrado');
+    await page.getByRole('button', { name: 'Cadastrar mesmo assim' }).click();
+    await expect(page.locator('.swal2-popup')).toContainText('Paciente cadastrado com sucesso');
+    const [p] = await query(`SELECT 1 FROM patient WHERE name = $1`, [`Filho Família QA ${fone}`]);
+    expect(p).toBeTruthy();
+  });
+
+  test('QA-017: CPF já cadastrado não pode ser usado em outro paciente (mensagem com o nome)', async () => {
     const cpf = cpfValido(222);
     expect(criado(await novoPaciente({ name: 'Original CPF QA', phone: '41933330002', document: cpf }))).toBe(true);
     const dup = await novoPaciente({ name: 'Duplicado CPF QA', phone: '41933330003', document: cpf });
     expect(criado(dup), JSON.stringify(dup.body)).toBe(false);
+    expect(dup.body.message).toBe('Este CPF já está cadastrado para o paciente Original CPF QA.');
   });
 
   test('QA-018: busca ignora acentos ("cecilia" encontra "Cecília")', async () => {
-    knownBug('QA-018', 'busca de paciente diferencia acentos');
     const nomes = async (termo: string) => {
       const r = await api.get(`patients/search?search=${encodeURIComponent(termo)}`);
       return JSON.stringify(r.body);

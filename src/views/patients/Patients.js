@@ -280,7 +280,7 @@ function Patient() {
           setIsOpen(false);
           getPatients();
         } else {
-          sweetAlertHandler({ title: 'Poxa...', text: 'Não foi possivel alterar.', icon: 'error', showCloseButton: true });
+          sweetAlertHandler({ title: 'Poxa...', text: response.data.message || 'Não foi possivel alterar.', icon: 'error', showCloseButton: true });
         }
       })
       .catch((err) => {
