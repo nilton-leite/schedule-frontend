@@ -31,8 +31,8 @@ export async function patientByFirstName(first: string): Promise<{ id: number; n
 }
 
 export async function scheduleById(id: number) {
-  const [row] = await query<{ statusId: number; data: Date; time: string; hasFirstQuery: boolean; hasHealthInsurance: boolean; healthInsuranceId: number | null }>(
-    `SELECT "statusId", data, time, "hasFirstQuery", "hasHealthInsurance", "healthInsuranceId" FROM schedule WHERE "scheduleId" = $1`,
+  const [row] = await query<{ statusId: number; data: Date; time: string; hasFirstQuery: boolean; hasHealthInsurance: boolean; healthInsuranceId: number | null; scheduleTypeId: number }>(
+    `SELECT "statusId", data, time, "hasFirstQuery", "hasHealthInsurance", "healthInsuranceId", "scheduleTypeId" FROM schedule WHERE "scheduleId" = $1`,
     [id]
   );
   return row;
