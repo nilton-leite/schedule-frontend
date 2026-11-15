@@ -80,6 +80,71 @@ test.describe('data e escala do médico', () => {
   });
 });
 
+test.describe('cirurgia (tipo 7) não segue a escala do médico', () => {
+  // Nos dados reais ~1 em 7 cirurgias é às 05h–06h30, antes da escala do consultório. Antes da Onda 2 a clínica
+  // criava dentro da escala e editava a hora (a edição não conferia nada); agora a cirurgia é livre de escala.
+  // Bruno atende só ter/qui à tarde (13:00–17:40).
+  const CIRURGIA = { scheduleTypeId: 7 };
+  let xavier: number, yasmin: number;
+  test.beforeAll(async () => {
+    xavier = await idOf('patient', 'Xavier Teste Pereira');
+    yasmin = await idOf('patient', 'Yasmin Teste Costa');
+  });
+
+  test('cirurgia às 06:00, antes da escala, é aceita (consulta no mesmo horário continua recusada)', async () => {
+    const ter = nextDay(['ter'], 9);
+    recusado(await criar(bruno, xavier, ter, '06:00'), /fora da escala/);
+    expect(aceito(await criar(bruno, xavier, ter, '06:00', CIRURGIA))).toBe(true);
+    const s = await scheduleById(await lastScheduleOf(xavier));
+    expect(s.time.slice(0, 5)).toBe('06:00');
+    expect(s.scheduleTypeId).toBe(7);
+  });
+
+  test('cirurgia em dia que o médico não atende no consultório é aceita', async () => {
+    const seg = nextDay(['seg'], 9);
+    recusado(await criar(bruno, xavier, seg, '07:30'), /indisponível/);
+    expect(aceito(await criar(bruno, xavier, seg, '07:30', CIRURGIA))).toBe(true);
+  });
+
+  test('editar cirurgia para 05:30 ou para outro dia fora da escala é aceito e gravado', async () => {
+    expect(aceito(await criar(bruno, yasmin, nextDay(['quin'], 9), '14:00', CIRURGIA))).toBe(true);
+    const id = await lastScheduleOf(yasmin);
+    let r = await api.patch(`schedules/${id}`, { time: '05:30:00', timeEnd: '05:40:00' });
+    expect(r.body.statusCode, JSON.stringify(r.body)).toBe(200);
+    expect((await scheduleById(id)).time.slice(0, 5)).toBe('05:30');
+    const sex = nextDay(['sex'], 9);
+    r = await api.patch(`schedules/${id}`, { data: asFrontSends(sex), time: '06:30:00', timeEnd: '06:40:00' });
+    expect(r.body.statusCode, JSON.stringify(r.body)).toBe(200);
+    const s = await scheduleById(id);
+    expect(new Date(s.data).getDate()).toBe(sex.getDate());
+    expect(s.time.slice(0, 5)).toBe('06:30');
+  });
+
+  test('editar consulta comum para 06:00 continua recusado', async () => {
+    expect(aceito(await criar(bruno, yasmin, nextDay(['ter'], 9), '15:00'))).toBe(true);
+    const id = await lastScheduleOf(yasmin);
+    recusado(await api.patch(`schedules/${id}`, { time: '06:00:00', timeEnd: '06:10:00' }), /fora da escala/);
+  });
+
+  test('cirurgia continua recusada no passado e para médico inativo', async () => {
+    recusado(await criar(bruno, xavier, addDays(today(), -1), '06:00', CIRURGIA), /retroativo/);
+    expect(aceito(await criar(inativo, xavier, nextDay(['seg'], 9), '06:00', CIRURGIA))).toBe(false);
+  });
+
+  test('cirurgia respeita a ausência só no horário cadastrado na ausência', async () => {
+    // Ausência de Bruno numa quarta (dia sem consultório), 08:00–12:00: a clínica decide o horário da ausência.
+    const qua = nextDay(['quar'], 16);
+    const motivo = await idOf('reasonTemporaryAbsence', 'Congresso');
+    const a = await api.post('temporaryAbsence', {
+      doctorId: bruno, reasonTemporaryAbsenceId: motivo, observation: 'QA cirurgia',
+      initDate: iso(qua), initTime: '08:00', endDate: iso(qua), endTime: '12:00'
+    });
+    expect(a.status, JSON.stringify(a.body)).toBeLessThan(300);
+    recusado(await criar(bruno, xavier, qua, '09:00', CIRURGIA), /ausencia temporária/);
+    expect(aceito(await criar(bruno, xavier, qua, '06:00', CIRURGIA))).toBe(true);
+  });
+});
+
 test.describe('ausência temporária do médico', () => {
   // Ausência de Ana em 3 dias úteis seguidos, das 08:00 às 18:00.
   let inicio: Date, meio: Date, fim: Date, depois: Date;
