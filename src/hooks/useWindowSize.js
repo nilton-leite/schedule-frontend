@@ -1,10 +1,12 @@
 import { useEffect, useState } from 'react';
 
 const useWindowSize = () => {
-  const [windowSize, setWindowSize] = useState({
-    width: undefined,
-    height: undefined
-  });
+  // Começa com o tamanho real da janela. Antes começava "undefined": no celular (< 992 px) o layout montava
+  // a versão de computador e logo trocava para a de celular, desmontando e recarregando a tela inteira.
+  const [windowSize, setWindowSize] = useState(() => ({
+    width: typeof window !== 'undefined' ? window.innerWidth : undefined,
+    height: typeof window !== 'undefined' ? window.innerHeight : undefined
+  }));
 
   useEffect(() => {
     function handleResize() {
