@@ -81,8 +81,8 @@ const NavContent = ({ navigation }) => {
 
     mainContent = (
       <div className="navbar-content sidenav-horizontal" id="layout-sidenav">
-        <Link to="#" className={prevClass.join(' ')} onClick={scrollPrevHandler}>
-          <span />
+        <Link to="#" className={prevClass.join(' ')} onClick={scrollPrevHandler} aria-label="Rolar o menu para a esquerda">
+          <span aria-hidden="true" />
         </Link>
         <div id="sidenav-wrapper" className="sidenav-horizontal-wrapper">
           <ListGroup
@@ -97,8 +97,8 @@ const NavContent = ({ navigation }) => {
             {navItems}
           </ListGroup>
         </div>
-        <Link to="#" className={nextClass.join(' ')} onClick={scrollNextHandler}>
-          <span />
+        <Link to="#" className={nextClass.join(' ')} onClick={scrollNextHandler} aria-label="Rolar o menu para a direita">
+          <span aria-hidden="true" />
         </Link>
       </div>
     );

@@ -16,6 +16,8 @@ import ptBR from 'date-fns/locale/pt-BR';
 import CardMain from '../../components/Card/MainCard';
 import DatePicker from 'react-datepicker';
 import Select from 'react-select';
+import AsyncSelect from 'react-select/async';
+import { loadPatientOptions, findPatientByCpf, patientLabel, localISODate } from '../../config/patientSearch';
 import Swal from 'sweetalert2';
 import axios from 'axios';
 import isValidCPF from '../../services/cpfvalidator';
@@ -61,8 +63,6 @@ const FullEventCalendar = () => {
   const [newFormSchedule, setNewFormSchedule] = useState(model);
   const [scheds, setScheds] = useState([]);
   const [schedsToday, setSchedsToday] = useState([]);
-  const [patients, setPatients] = useState([]);
-  const [existingPatients, setExistingPatients] = useState([]);
   const [doctors, setDoctors] = useState([]);
   const [doctorsAux, setDoctorsAux] = useState([]);
   const [doctorsFilter, setDoctorsFilter] = useState([]);
@@ -101,7 +101,6 @@ const FullEventCalendar = () => {
 
   useEffect(() => {
     getStatus();
-    getPatients();
     getDoctors();
     getScheduleTypes();
     getHealthInsurances();
@@ -181,7 +180,7 @@ const FullEventCalendar = () => {
       case 3:
         return '#CD0000';
       case 4:
-        return '#228B22';
+        return '#208320'; // era #228B22: nem branco nem preto chegavam a 4,5 de contraste (QA-022)
       case 5:
         return '#CDB5CD';
       case 6:
@@ -191,6 +190,21 @@ const FullEventCalendar = () => {
       default:
         return '#CD9B9B';
     }
+  };
+
+  /**
+   * Cor do texto sobre a cor de uma situação: branco ou quase-preto, o que tiver mais contraste (WCAG).
+   * Antes era sempre branco: amarelo, lilás, cinza e azul-claro ficavam ilegíveis (QA-022).
+   */
+  const textOn = (hex) => {
+    const lum = (h) => {
+      const c = [1, 3, 5]
+        .map((i) => parseInt(h.substr(i, 2), 16) / 255)
+        .map((v) => (v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4)));
+      return 0.2126 * c[0] + 0.7152 * c[1] + 0.0722 * c[2];
+    };
+    const l = lum(hex);
+    return (1.05 / (l + 0.05)) >= ((l + 0.05) / (lum('#1a1a1a') + 0.05)) ? '#ffffff' : '#1a1a1a';
   };
 
   const setStatusIcon = (id) => {
@@ -282,7 +296,7 @@ const FullEventCalendar = () => {
           end: combinedEnd,
           borderColor: setColour(schedule.statusId),
           backgroundColor: setColour(schedule.statusId),
-          eventTextColor: '#fff',
+          textColor: textOn(setColour(schedule.statusId)),
           extendedProps: {
             title: `[${type}] (${doctorLabel}) ${schedule.patientName} | ${setStatusIcon(schedule.statusId)} ${
               schedule.healthInsurance !== null ? `{${schedule.healthInsurance.name}}` : ''
@@ -326,7 +340,7 @@ const FullEventCalendar = () => {
             end: combinedEnd,
             borderColor: '#9C9C9C',
             backgroundColor: '#9C9C9C',
-            eventTextColor: '#CD9B9B',
+            textColor: textOn('#9C9C9C'),
             extendedProps: {
               title: `AUSENTE: (${doctor.name}) - ${temporaryabs.temporary.reasonTemporaryAbsence.description}`,
               typeModal: 'TEMPORARY',
@@ -559,7 +573,6 @@ const FullEventCalendar = () => {
       });
       return;
     }
-    getPatients();
     setCalendarDate(args.dateStr);
     if (args.dateStr.length > 11) {
       const [date] = args.dateStr.split('T');
@@ -616,8 +629,20 @@ const FullEventCalendar = () => {
     return `${year}-${month}-${day}`;
   }
 
+  /**
+   * Acessibilidade do FullCalendar (QA-022, itens sérios): os ícones dos botões ‹ › (o botão já tem nome) ficam
+   * ocultos para leitores de tela. Roda a cada troca de visão/data.
+   * Obs.: NÃO pôr tabindex na área rolável (.fc-scroller): fica dentro do role="grid" e vira violação crítica.
+   */
+  const calendarA11y = () => {
+    window.requestAnimationFrame(() => {
+      document.querySelectorAll('.fc [role="img"], .fc .fc-icon').forEach((el) => el.setAttribute('aria-hidden', 'true'));
+    });
+  };
+
   const getTodaySchedules = async (schedulesfortoday) => {
-    const today = new Date().toISOString().split('T')[0].split('-').reverse().join('/');
+    // Data local (toISOString é UTC: depois das 21h a lista mostrava os agendamentos de amanhã).
+    const today = localISODate().split('-').reverse().join('/');
     const filteredItems = schedulesfortoday.filter((item) => item.data == today);
     setSchedsToday(filteredItems);
   };
@@ -645,24 +670,6 @@ const FullEventCalendar = () => {
       })
       .catch((err) => {
         console.error('Não foi possível puxar as consultas.' + err);
-      });
-  };
-
-  const getPatients = async () => {
-    await axios
-      .get(`${ENDPOINT.api}patients`, ENDPOINT.config)
-      .then((response) => {
-        setPatients(
-          response.data.response.map((item) => ({
-            value: item.patientId,
-            label: `(${item.phone}) ${item.name} `
-          }))
-        );
-
-        setExistingPatients(response.data.response);
-      })
-      .catch((err) => {
-        console.error('Não foi possível puxar os Pacientes.' + err);
       });
   };
 
@@ -896,7 +903,7 @@ const FullEventCalendar = () => {
     });
 
     setDoctorSelectedOption(doctors.find((option) => option.value === editItem.doctorId));
-    setPatientSelectedOption(patients.find((option) => option.value === editItem.patientId));
+    setPatientSelectedOption(editItem.patientId ? { value: editItem.patientId, label: editItem.patientName } : null);
     setHealthInsuranceSelectedOption(healthInsurances.find((option) => option.value === editItem.healthInsuranceId));
     setStatusSelectedFormOption(statusFormSelection.find((option) => option.value === editItem.statusId));
 
@@ -1011,8 +1018,7 @@ const FullEventCalendar = () => {
             icon: 'success',
             showCloseButton: true
           });
-          getPatients();
-          handlePatientSelectChange({ value: response.data.response.patientId, label: response.data.response.name });
+          handlePatientSelectChange({ value: response.data.response.patientId, label: patientLabel(response.data.response) });
           setIsRegisterPatient(false);
           setPatient(modelPatient);
         } else {
@@ -1027,21 +1033,23 @@ const FullEventCalendar = () => {
 
   const searchExistingPatient = async () => {
     if (isValidCPF(patient.document.replace(/\D/g, ''))) {
-      for (const [key, value] of Object.entries(existingPatients)) {
-        if (value.document === patient.document.replace(/\D/g, '')) {
-          setPatient({
-            patientId: existingPatients[key].patientId,
-            name: existingPatients[key].name,
-            document: existingPatients[key].document,
-            phone: existingPatients[key].phone,
-            acceptedMessage: existingPatients[key].acceptedMessage
-          });
-
-          handlePatientSelectChange({ value: existingPatients[key].patientId, label: existingPatients[key].name });
-          setExist(true);
-        } else {
-          /* setPatient(modelPatient); */
-        }
+      // Pergunta à API (antes procurava na lista completa de pacientes baixada pela tela).
+      let existente = null;
+      try {
+        existente = await findPatientByCpf(patient.document);
+      } catch (err) {
+        console.error('Não foi possível conferir o CPF.' + err);
+      }
+      if (existente) {
+        setPatient({
+          patientId: existente.patientId,
+          name: existente.name,
+          document: existente.document,
+          phone: existente.phone,
+          acceptedMessage: existente.acceptedMessage
+        });
+        handlePatientSelectChange({ value: existente.patientId, label: patientLabel(existente) });
+        setExist(true);
       }
     } else {
       sweetAlertHandler({ title: 'Poxa...', text: 'CPF Inválido.', icon: 'error', showCloseButton: true });
@@ -1116,6 +1124,8 @@ const FullEventCalendar = () => {
             <FullCalendar
               defaultView="timeGridDay"
               initialView="timeGridDay"
+              viewDidMount={calendarA11y}
+              datesSet={calendarA11y}
               locales={allLocales}
               slotMinTime={'06:00:00'}
               slotMaxTime={'20:00:00'}
@@ -1154,7 +1164,7 @@ const FullEventCalendar = () => {
                   {statusSelection.map((item) => (
                     <Badge
                       pill
-                      style={{ backgroundColor: setColour(item.value), borderColor: setColour(item.value), color: 'white' }}
+                      style={{ backgroundColor: setColour(item.value), borderColor: setColour(item.value), color: textOn(setColour(item.value)) }}
                       className="ml-1 p-2"
                     >
                       {item.label}{' '}
@@ -1468,9 +1478,14 @@ const FullEventCalendar = () => {
                           <Form.Group controlId="patientId">
                             <Form.Label>Paciente</Form.Label>
 
-                            <Select
+                            <AsyncSelect
                               name="patientId"
-                              options={patients}
+                              loadOptions={loadPatientOptions}
+                              cacheOptions
+                              noOptionsMessage={({ inputValue }) =>
+                                String(inputValue || '').trim().length < 3 ? 'Digite ao menos 3 letras do nome, ou o telefone/CPF.' : 'Nenhum paciente encontrado.'
+                              }
+                              loadingMessage={() => 'Procurando...'}
                               className="basic-multi-select"
                               classNamePrefix="select"
                               placeholder="Digite aqui para procurar."

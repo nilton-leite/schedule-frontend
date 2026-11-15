@@ -86,7 +86,7 @@ strong {
 
   > .breadcrumb-item {
     a {
-      color: #888;
+      color: $theme-font-color; // era #888 (contraste 3,5) — QA-022
     }
 
     &:last-child a {
@@ -200,7 +200,7 @@ p.text-muted {
         border: none;
         background: transparent;
         box-shadow: none;
-        color: #888;
+        color: $theme-font-color; // era #888 (contraste 3,5) — QA-022
 
         i {
           margin-right: 0;

@@ -41,7 +41,7 @@
   }
 
   .fc-ltr .fc-basic-view .fc-day-top .fc-day-number {
-    color: #888;
+    color: $theme-font-color; // era #888 (contraste 3,5) — QA-022
   }
 }
 /**====== Calendar css end ======**/

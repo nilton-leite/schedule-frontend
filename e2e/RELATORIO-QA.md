@@ -40,6 +40,15 @@ causa descrita (conferido um a um).
 
 **Fase C3 concluída.** Todos os 25 bugs confirmados estão corrigidos, exceto os itens sérios (não críticos) de acessibilidade do QA-022.
 
+| Data | Ajuste (Onda 3, branch `c2-agenda`) | Teste |
+|---|---|---|
+| 15/11 | Cirurgia (tipo 7) não confere a escala do médico (criar/editar); retroativo, médico inativo e ausência continuam. Migration corrige escala com resto de máscara ("13:30:__"). *(Também na Onda 2.)* | `agenda-regras` |
+| 15/11 | QA-022 (sérios): texto base do tema `#888`→`#6b6b6b`, botão secundário `#748892`→`#5b6c75`, texto das situações (legenda e eventos) preto ou branco conforme o contraste, verde de "Confirmado" `#228B22`→`#208320`, setas do menu com nome, ícones do calendário ocultos para leitor de tela. Axe agora reprova também os sérios. Exceção documentada: `scrollable-region-focusable` na grade vazia do FullCalendar | `robustez` |
+| 15/11 | Agenda e Consultas não baixam mais todos os pacientes (o `GET /patients` fazia uma consulta ao banco por paciente, ~8 mil, a cada abertura e a cada clique num horário): busca ao digitar, no máximo 30, por nome/telefone/CPF; "CPF já cadastrado" pergunta à API. Consultas: o campo Paciente da edição vinha vazio | `onda3-ajustes` |
+| 15/11 | Paciente sem nascimento: data vazia em vez de "Invalid date" (8.157 de 8.163 reais). A edição de paciente passa a gravar a data de nascimento (era ignorada) e pode limpá-la | `onda3-ajustes` |
+| 15/11 | "Consultas de hoje" e filtro de data de Consultas no dia local (antes UTC: depois das 21h mostrava amanhã) | `onda3-ajustes` |
+| 15/11 | Teste: ausências de teste da Ana a 6 semanas (no domingo/segunda caíam na quarta do teste de encaixe) | `agenda-regras` |
+
 ## Resumo executivo
 - **O fluxo principal funciona**: login por perfil, criar consulta pela agenda, vê-la no calendário, confirmar pela
   ficha (com plano), lista de consultas, cadastro de pacientes, página pública de confirmação (desktop e iPhone),

@@ -146,11 +146,12 @@ test.describe('cirurgia (tipo 7) não segue a escala do médico', () => {
 });
 
 test.describe('ausência temporária do médico', () => {
-  // Ausência de Ana em 3 dias úteis seguidos, das 08:00 às 18:00.
+  // Ausência de Ana em 3 dias úteis seguidos, das 08:00 às 18:00, daqui a ~6 semanas: longe de todas as outras
+  // datas da Ana na suíte (até ~5 semanas). Antes era seg+8, que no domingo/segunda caía na quarta do encaixe.
   let inicio: Date, meio: Date, fim: Date, depois: Date;
 
   test.beforeAll(async () => {
-    inicio = nextDay(['seg'], 8);
+    inicio = nextDay(['seg'], 42);
     meio = addDays(inicio, 1);
     fim = addDays(inicio, 2);
     depois = addDays(inicio, 3);
@@ -222,7 +223,7 @@ test.describe('conflito e capacidade', () => {
 test.describe('edição respeita as mesmas regras', () => {
   let id: number;
   test.beforeAll(async () => {
-    // Fora da ausência de teste da Ana (seg–qua da semana seguinte).
+    // Fora das ausências de teste da Ana (daqui a 6 e 8 semanas).
     const sex = nextDay(['sex'], 5);
     expect(aceito(await criar(ana, pac.Heitor, sex, '09:00'))).toBe(true);
     id = await lastScheduleOf(pac.Heitor);

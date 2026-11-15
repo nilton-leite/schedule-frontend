@@ -16,7 +16,7 @@ import { LoadingContext } from '../../contexts/LoadingContext';
 import Loader from '../../components/Loader/Loader';
 import PaginationComponent from '../components/Pagination';
 import AsyncSelect from 'react-select/async';
-
+import { loadPatientOptions, patientLabel, localISODate } from '../../config/patientSearch';
 
 function Schedule() {
   registerLocale('pt-BR', ptBR);
@@ -45,7 +45,6 @@ function Schedule() {
   const [newSchedule, setNewSchedule] = useState(model);
   const [scheds, setScheds] = useState([]);
   const [schedsToday, setSchedsToday] = useState([]);
-  const [patients, setPatients] = useState([]);
   const [doctors, setDoctors] = useState([]);
   const [statusSelection, setStatusSelection] = useState([]);
   const [doctorSelectedOption, setDoctorSelectedOption] = useState([]);
@@ -89,22 +88,6 @@ function Schedule() {
     });
   };
 
-  const loadOptions = async (inputValue) => { 
-    if (!inputValue || inputValue.length < 3) return [];
-  
-    try {
-      const response = await axios.get(`${ENDPOINT.api}patients/search?search=${inputValue}`, ENDPOINT.config);
-      const options = response.data.response.map((patient) => ({
-        value: patient.patientId,
-        label: `(${patient.phone}) ${patient.name} `
-      }));
-      return options;
-    } catch (error) {
-      console.error('Erro ao buscar pacientes:', error);
-      return [];
-    }
-  }; 
-  
   const handleChangePatient = (selectedOption) => {
     setFilterPatientSelectedOption(selectedOption);
   };
@@ -131,7 +114,7 @@ function Schedule() {
     if (filterPatientSelectedOption && filterPatientSelectedOption.value) query += `&patientId=${filterPatientSelectedOption.value}`;
     if (filterDoctorSelectedOption && filterDoctorSelectedOption.value) query += `&doctorId=${filterDoctorSelectedOption.value}`;
     if (filterTypeSelectedOption && filterTypeSelectedOption.value) query += `&scheduleTypeId=${filterTypeSelectedOption.value}`;
-    if (filterDate) query += `&data=${filterDate.toISOString().split('T')[0]}`;
+    if (filterDate) query += `&data=${localISODate(filterDate)}`; // data local, não UTC
     await axios
       .get(`${ENDPOINT.api}schedules/list?${query}`, ENDPOINT.config)
       .then(async (response) => {
@@ -157,22 +140,6 @@ function Schedule() {
           response.data.response.map((item) => ({
             value: item.scheduleTypeId,
             label: `${item.description} `
-          }))
-        );
-      })
-      .catch((err) => {
-        console.error('Não foi possível puxar os Pacientes.' + err);
-      });
-  };
-
-  const getPatients = async () => {
-    await axios
-      .get(`${ENDPOINT.api}patients`, ENDPOINT.config)
-      .then((response) => {
-        setPatients(
-          response.data.response.map((item) => ({
-            value: item.patientId,
-            label: `(${item.phone}) ${item.name} `
           }))
         );
       })
@@ -393,7 +360,8 @@ function Schedule() {
     });
 
     setDoctorSelectedOption(doctors.find((option) => option.value === editItem.doctorId));
-    setPatientSelectedOption(patients.find((option) => option.value === editItem.patientId));
+    // A lista de pacientes não é mais baixada inteira: o paciente da consulta vem do próprio item.
+    setPatientSelectedOption(editItem.patientId ? { value: editItem.patientId, label: editItem.patientName } : null);
     setStatusSelectedOption(statusSelection.find((option) => option.value === editItem.statusId));
     setTypeSelectedOption(scheduleTypes.find((option) => option.value === editItem.scheduleTypeId));
     setHealthInsuranceSelectedOption(healthInsurances.find((option) => option.value === editItem.healthInsuranceId));
@@ -484,8 +452,7 @@ function Schedule() {
             showCloseButton: true
           });
           setPatient(modelPatient);
-          getPatients();
-          handlePatientSelectChange({ value: response.data.response.patientId, label: response.data.response.name });
+          handlePatientSelectChange({ value: response.data.response.patientId, label: patientLabel(response.data.response) });
           setIsRegisterPatient(false);
         } else {
           sweetAlertHandler({ title: 'Poxa...', text: response.data.message || 'Não foi possivel cadastrar.', icon: 'error', showCloseButton: true });
@@ -681,12 +648,17 @@ function Schedule() {
                             <Form.Group controlId="patientId">
                               <Form.Label>Paciente</Form.Label>
 
-                              <Select
+                              <AsyncSelect
                                 name="patientId"
-                                options={patients}
+                                loadOptions={loadPatientOptions}
+                                cacheOptions
+                                noOptionsMessage={({ inputValue }) =>
+                                  String(inputValue || '').trim().length < 3 ? 'Digite ao menos 3 letras do nome, ou o telefone/CPF.' : 'Nenhum paciente encontrado.'
+                                }
+                                loadingMessage={() => 'Procurando...'}
                                 className="basic-multi-select"
                                 classNamePrefix="select"
-                                placeholder="Selecione"
+                                placeholder="Digite para procurar"
                                 value={patientSelectedOption}
                                 onChange={handlePatientSelectChange}
                                 isSearchable
@@ -962,7 +934,7 @@ function Schedule() {
                       <AsyncSelect
                         className="basic-multi-select"
                         cacheOptions
-                        loadOptions={loadOptions}
+                        loadOptions={loadPatientOptions}
                         defaultOptions
                         onChange={handleChangePatient}
                         value={filterPatientSelectedOption}

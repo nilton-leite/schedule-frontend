@@ -2,7 +2,7 @@
       Data Tables css start
 ==========================  **/
 .table {
-  color: #888;
+  color: $theme-font-color; // era #888 (contraste 3,5) — QA-022
   td,
   th {
     border-top: 1px solid $theme-border;

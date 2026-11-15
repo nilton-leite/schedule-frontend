@@ -7,7 +7,7 @@
   .dataTables_filter {
     label {
       margin-bottom: 10px;
-      color: #888;
+      color: $theme-font-color; // era #888 (contraste 3,5) — QA-022
       select {
         margin: auto 5px;
       }

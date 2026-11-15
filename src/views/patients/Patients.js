@@ -209,6 +209,25 @@ function Patient() {
       }
     }
 
+    // Data de nascimento: antes a edição nunca gravava (só o cadastro). Vazio limpa; incompleta/inválida avisa.
+    const nascimento = String(patient.dateBirth || '');
+    const digitos = nascimento.replace(/\D/g, '');
+    if (nascimento !== String(filteredData[0].dateBirth || '')) {
+      if (digitos === '') {
+        if (filteredData[0].dateBirth) updatedData.dateBirth = null;
+      } else {
+        const [dia, mes, ano] = nascimento.split('/').map((p) => parseInt(p, 10));
+        const data = new Date(ano, mes - 1, dia);
+        const valida =
+          digitos.length === 8 && data.getFullYear() === ano && data.getMonth() === mes - 1 && data.getDate() === dia && data <= new Date();
+        if (!valida) {
+          sweetAlertHandler({ title: 'Poxa...', text: 'Data de nascimento inválida. Use DD/MM/AAAA ou deixe em branco.', icon: 'error', showCloseButton: true });
+          return;
+        }
+        updatedData.dateBirth = `${ano}-${String(mes).padStart(2, '0')}-${String(dia).padStart(2, '0')}`;
+      }
+    }
+
     if (Object.keys(updatedData).length > 0) submitUpdate(patient.patientId, updatedData);
   };
 

@@ -40,7 +40,7 @@
   .dz-message {
     text-align: center;
     margin: 4em 0;
-    color: #888;
+    color: $theme-font-color; // era #888 (contraste 3,5) — QA-022
     font-size: 18px;
   }
 

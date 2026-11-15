@@ -72,27 +72,49 @@ test.describe('Robustez', () => {
   }
 });
 
-test.describe('Acessibilidade (axe) — violações críticas', () => {
+test.describe('Acessibilidade (axe) — violações críticas e sérias', () => {
   const telas: Array<[string, string | null, string]> = [
     ['login', null, '/'],
     ['agenda', 'e2e/.auth/recepcao.json', '/agenda'],
     ['confirmacao-antiga', null, '/confirmacao']
   ];
   for (const [nome, sessao, url] of telas) {
-    test(`${nome}: sem violações críticas`, async ({ browser }, info) => {
+    test(`${nome}: sem violações críticas nem sérias`, async ({ browser }, info) => {
       const ctx = await browser.newContext(sessao ? { storageState: sessao } : { storageState: { cookies: [], origins: [] } });
       const page = await ctx.newPage();
+      if (nome === 'agenda') {
+        // Consultas de HOJE em várias situações: a tabela "Consultas de hoje" e as cores dos eventos entram na
+        // análise sempre (antes dependia de outro teste ter criado consulta no dia).
+        const doctorId = await idOf('doctor', 'Dra. Ana Lima');
+        const p = await patientByFirstName('Lívia');
+        const h = new Date();
+        const d = `${h.getFullYear()}-${h.getMonth() + 1}-${h.getDate()} 00:00:00`;
+        for (const [statusId, hora] of [[2, '06:00'], [4, '06:15'], [1, '06:30'], [3, '06:45']] as const) {
+          await query(
+            `INSERT INTO schedule (uuid, data, time, "timeEnd", "hasHealthInsurance", "hasFirstQuery", "statusId", "doctorId", "patientId", "scheduleTypeId", "createdBy", "lastChangedBy")
+             VALUES (gen_random_uuid()::text, $1, $2::time, $2::time + interval '10 minutes', false, false, $3, $4, $5, 1, 1, 1)`,
+            [d, `${hora}:00`, statusId, doctorId, p.id]
+          );
+        }
+      }
       await page.goto(url);
       await page.waitForTimeout(1500);
-      const r = await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa']).analyze();
+      let axe = new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa']);
+      // Exceção documentada (agenda): a grade rolável do FullCalendar sem nenhum evento no dia não tem item
+      // focável ("scrollable-region-focusable"). Dar tabindex a ela cria violação CRÍTICA (filho não permitido
+      // dentro do role="grid" do FullCalendar). Com consultas no dia, os eventos já são focáveis.
+      if (nome === 'agenda') axe = axe.disableRules(['scrollable-region-focusable']);
+      const r = await axe.analyze();
+      // Alvo + motivo medido (no contraste, as cores e a razão), para corrigir sem adivinhar.
+      const motivo = (n: { any: Array<{ message: string }> }) => (n.any[0]?.message || '').split('\n')[0];
       const resumo = r.violations
-        .map((v) => `${v.impact} · ${v.id} (${v.nodes.length}) · ${v.help}\n    ${v.nodes.slice(0, 3).map((n) => n.target.join(' ')).join('\n    ')}`)
+        .map((v) => `${v.impact} · ${v.id} (${v.nodes.length}) · ${v.help}\n    ${v.nodes.slice(0, 4).map((n) => `${n.target.join(' ')}\n      ${motivo(n)}`).join('\n    ')}`)
         .join('\n');
       await info.attach(`axe-${nome}`, { body: resumo || 'sem violações', contentType: 'text/plain' });
       console.log(`[axe ${nome}]\n${resumo}`);
-      const criticas = r.violations.filter((v) => v.impact === 'critical');
-      if (criticas.length) knownBug('QA-022', `acessibilidade: ${criticas.map((v) => v.id).join(', ')}`);
-      expect(criticas.map((v) => v.id)).toEqual([]);
+      // QA-022: os críticos foram corrigidos na C3; os sérios (contraste, links e ícones sem nome), na Onda 3.
+      const graves = r.violations.filter((v) => v.impact === 'critical' || v.impact === 'serious');
+      expect(graves.map((v) => `${v.impact}:${v.id}`)).toEqual([]);
       await ctx.close();
     });
   }
